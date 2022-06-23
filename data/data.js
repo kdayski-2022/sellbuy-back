@@ -1,4 +1,4 @@
-const data = 
+export const  jsonData = 
     [
         {
           "volume": 0,
@@ -2001,4 +2001,3 @@ const data =
           "ask_price": null
         }
     ]
-module.exports = data
