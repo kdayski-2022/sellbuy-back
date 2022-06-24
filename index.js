@@ -100,6 +100,7 @@ app.post('/post_order_data', (req, res) => {
     axios.get(`${apiUrl}/get_book_summary_by_currency?currency=ETH&kind=option`).then(apiRes => {
         const bidPrices = []
         const fillteredPrices = []
+        let result
         const {period, price} = req.body
 
         const fillteredPrice = apiRes.data.result.filter(item => 
@@ -115,8 +116,6 @@ app.post('/post_order_data', (req, res) => {
         //     return(period >= getCurrentDay() && period <= getLastDay())
         // })
         
-
-        let minBidPrice = apiRes.data.result[0].bid_price
         let maxBidPrice = apiRes.data.result[0].bid_price
         
         for(let i = 0; i < apiRes.data.result.length; i++){
@@ -124,14 +123,12 @@ app.post('/post_order_data', (req, res) => {
             if(apiRes.data.result[i].bid_price > maxBidPrice){
                 maxBidPrice = apiRes.data.result[i].bid_price
             }
-    
-            else if (apiRes.data.result[i].bid_price < minBidPrice){
-                minBidPrice = apiRes.data.result[i].bid_price
-            }
         }
-        bidPrices.push(maxBidPrice, minBidPrice)
-        res.json({success: true, data: {fillteredPrice}})
-    })
+        bidPrices.push(maxBidPrice)
 
-   // отфильтровать по дате из того что получилось повторно отфильтровать по дате fillteredPrice (timestamp )
+        for(let i = 0; i < apiRes.data.result.length; i++){
+            result = maxBidPrice * apiRes.data.result[i].estimated_delivery_price * 0.7
+        }
+        res.json({success: true, data: {result}})
+    })
 })
