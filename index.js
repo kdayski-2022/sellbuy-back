@@ -1,4 +1,4 @@
-import express from 'express' 
+import express, { response } from 'express' 
 import axios from 'axios' 
 import cors from 'cors'
 import {jsonData} from './data/data.js'
@@ -42,7 +42,7 @@ app.get('/get_dates', async (req, res) => {
     axios.get(`${apiUrl}/get_book_summary_by_currency?currency=ETH&kind=option`).then(apiRes =>{
             const fillteredDate = apiRes.data.result.filter(item =>{
             const [_, stortedDataUnderlying_index] = item.underlying_index.split('-')
-            const date = new Date(Date.parse(stortedDataUnderlying_index)).getTime()
+            const date = new Date(Date.parse(stortedDataUnderlying_index))
             // console.log("current day" , getCurrentDay())
             // console.log("last day" , getLastDay())
             // console.log("date" , date)
@@ -79,9 +79,10 @@ app.get('/get_prices', async (req, res) => {
         const prices = []
         console.log("currentPrice", currentPrice)
         const formatedCurrentPrice = Math.round(currentPrice / 100) * 100
+        console.log("formatedCurrentPrice", currentPrice)
         for (let i = -4; i < 4; i++) prices.push(formatedCurrentPrice + i * strikeStep)
         res.json({success:true, data:{currentPrice, prices}})
-    })
+    }).catch(err => console.log(err.apiRes.data))
 })      
 
 app.get('/get_periods', async (req, res) => {
@@ -96,14 +97,41 @@ app.get('/get_periods', async (req, res) => {
 })
 
 app.post('/post_order_data', (req, res) => {
-    const {period, price} = req.body
+    axios.get(`${apiUrl}/get_book_summary_by_currency?currency=ETH&kind=option`).then(apiRes => {
+        const bidPrices = []
+        const fillteredPrices = []
+        const {period, price} = req.body
 
-    jsonData[period] = {
-        period, price
-    }
+        const fillteredPrice = apiRes.data.result.filter(item => 
+            item.estimated_delivery_price > price - 100 &&  item.estimated_delivery_price <= price
+        )
+
+        fillteredPrices.push(fillteredPrice)
+
+        // const fillteredDate = fillteredPrice.filter(item =>{
+        //     const [_, stortedDataUnderlying_index] = item.underlying_index.split('-')
+        //     period = new Date(Date.parse(stortedDataUnderlying_index))
+        //     console.log("period" , period)
+        //     return(period >= getCurrentDay() && period <= getLastDay())
+        // })
+        
+
+        let minBidPrice = apiRes.data.result[0].bid_price
+        let maxBidPrice = apiRes.data.result[0].bid_price
+        
+        for(let i = 0; i < apiRes.data.result.length; i++){
+
+            if(apiRes.data.result[i].bid_price > maxBidPrice){
+                maxBidPrice = apiRes.data.result[i].bid_price
+            }
     
-    res.json(jsonData[period])//пробежаться по массиву отфильтровать по дате и цене instrument name
+            else if (apiRes.data.result[i].bid_price < minBidPrice){
+                minBidPrice = apiRes.data.result[i].bid_price
+            }
+        }
+        bidPrices.push(maxBidPrice, minBidPrice)
+        res.json({success: true, data: {fillteredPrice}})
+    })
+
+   // отфильтровать по дате из того что получилось повторно отфильтровать по дате fillteredPrice (timestamp )
 })
-
-
-// fdfdfdfddfdf
