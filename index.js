@@ -111,7 +111,7 @@ app.get('/order_data', (req, res) => {
     .get(`${apiUrl}/get_book_summary_by_currency?currency=ETH&kind=option`)
     .then((apiRes) => {
       try {
-        const { period, price } = req.query;
+        const { period, price, amount } = req.query;
 
         const fillteredPrices = apiRes.data.result.filter(
           (item) =>
@@ -140,7 +140,7 @@ app.get('/order_data', (req, res) => {
           )
           .reverse()[0];
         const { estimated_delivery_price, bid_price } = maxBidPriceObj;
-        const recieve = estimated_delivery_price * bid_price * 0.7;
+        const recieve = estimated_delivery_price * bid_price * amount * 0.7;
 
         res.json({ success: true, data: { ...maxBidPriceObj, recieve } });
       } catch (e) {
