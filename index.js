@@ -1,7 +1,7 @@
-import express, { response } from 'express';
+import express from 'express';
 import axios from 'axios';
 import cors from 'cors';
-import { jsonData } from './data/data.js';
+import {create} from './txHashDb/txHashDb.js'
 import {
   TOMORROW,
   WEEK,
@@ -16,6 +16,7 @@ const app = new express();
 const port = 3001;
 const apiUrl = 'https://deribit.com/api/v2/public';
 const strikeStep = 100;
+
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -122,7 +123,7 @@ app.get('/order_data', (req, res) => {
         const fillteredDates = fillteredPrices.filter((item) => {
           const [_, stortedDataUnderlying_index] =
             item.underlying_index.split('-');
-          const period = new Date(
+            period = new Date(
             Date.parse(stortedDataUnderlying_index)
           ).getTime();
           return period >= getCurrentDay() && period <= getLastDay();
@@ -150,5 +151,8 @@ app.get('/order_data', (req, res) => {
 });
 
 app.post('/order_data', (req, res) => {
-  const { period, price } = req.body;
+  const amount = 1.5
+  const txHash = "0xc21efc9a1f8288a6e7b7f5eae2d9c7fc3fce9485f129b08c2d0b2b262c5fc040"
 });
+
+create()
