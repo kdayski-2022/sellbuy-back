@@ -3,7 +3,6 @@ const dotenv = require('dotenv');
 const Web3 = require('web3')
 const db = require('../db')
 const { getLastDayOfWeek, getFirstDayOfWeek } = require('../lib/dates')
-const transactionContoller = require('./transaction.controller')
 dotenv.config();
 const apiUrl = process.env.API_URL;
 const infuraRpc = process.env.INFURA_RPC;
@@ -14,6 +13,7 @@ class OrderContoller {
 		.get(`${apiUrl}/get_book_summary_by_currency?currency=ETH&kind=option`)
 		.then((apiRes) => {
 		  try {
+			console.log(req.query)
 			const { period, price, amount } = req.query;
 	
 			const fillteredPrices = apiRes.data.result.filter(
