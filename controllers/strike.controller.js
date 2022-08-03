@@ -7,7 +7,7 @@ class StrikeContoller {
 	async getStrikes(req, res) {
 		let strikes = [];
 		axios
-			.get(`${apiUrl}/get_book_summary_by_currency?currency=ETH&kind=option`)
+			.get(`${apiUrl}/public/get_book_summary_by_currency?currency=ETH&kind=option`)
 			.then((apiRes) => {});
 		
 		// for (data of jsonData) {

@@ -1,0 +1,83 @@
+{
+    "tables": {
+        "Auths": {
+            "tableName": "Auths",
+            "schema": {
+                "id": {
+                    "allowNull": false,
+                    "primaryKey": true,
+                    "autoIncrement": true,
+                    "field": "id",
+                    "seqType": "Sequelize.INTEGER"
+                },
+                "auth_roken": {
+                    "field": "auth_roken",
+                    "seqType": "Sequelize.STRING(1000)"
+                },
+                "expire_in": {
+                    "field": "expire_in",
+                    "seqType": "Sequelize.INTEGER"
+                },
+                "refresh_token": {
+                    "field": "refresh_token",
+                    "seqType": "Sequelize.STRING(1000)"
+                },
+                "createdAt": {
+                    "allowNull": false,
+                    "field": "createdAt",
+                    "seqType": "Sequelize.DATE"
+                },
+                "updatedAt": {
+                    "allowNull": false,
+                    "field": "updatedAt",
+                    "seqType": "Sequelize.DATE"
+                }
+            },
+            "indexes": []
+        },
+        "Orders": {
+            "tableName": "Orders",
+            "schema": {
+                "id": {
+                    "allowNull": false,
+                    "primaryKey": true,
+                    "autoIncrement": true,
+                    "field": "id",
+                    "seqType": "Sequelize.INTEGER"
+                },
+                "tx_hash": {
+                    "field": "tx_hash",
+                    "seqType": "Sequelize.STRING"
+                },
+                "amount": {
+                    "field": "amount",
+                    "seqType": "Sequelize.INTEGER"
+                },
+                "price": {
+                    "field": "price",
+                    "seqType": "Sequelize.INTEGER"
+                },
+                "instrument_name": {
+                    "field": "instrument_name",
+                    "seqType": "Sequelize.STRING"
+                },
+                "execute_date": {
+                    "field": "execute_date",
+                    "seqType": "Sequelize.DATE"
+                },
+                "createdAt": {
+                    "allowNull": false,
+                    "field": "createdAt",
+                    "seqType": "Sequelize.DATE"
+                },
+                "updatedAt": {
+                    "allowNull": false,
+                    "field": "updatedAt",
+                    "seqType": "Sequelize.DATE"
+                }
+            },
+            "indexes": []
+        }
+    },
+    "revision": 6
+}

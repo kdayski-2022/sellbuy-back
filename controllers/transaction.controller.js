@@ -1,4 +1,4 @@
-const db = require('../db')
+const db = require('../database')
 
 class TransactionContoller {
 	async createTransaction(req, res) {

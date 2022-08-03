@@ -7,7 +7,7 @@ const apiUrl = process.env.API_URL;
 class DateContoller {
 	async getDates(req, res) {
       axios
-        .get(`${apiUrl}/get_book_summary_by_currency?currency=ETH&kind=option`)
+        .get(`${apiUrl}/public/get_book_summary_by_currency?currency=ETH&kind=option`)
         .then((apiRes) => {
           const fillteredDate = apiRes.data.result.filter((item) => {
             const [_, stortedDataUnderlying_index] =

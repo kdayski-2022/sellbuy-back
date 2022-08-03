@@ -1,0 +1,14 @@
+{
+	"development": {
+	  "username": "sellbuy",
+	  "password": "sellbuy",
+	  "database": "sellbuy",
+	  "host": "localhost",
+	  "dialect": "postgres",
+	  "logging": false,
+	  "query": {
+		"raw": true
+	  },
+	  "port": 5441
+	}
+}

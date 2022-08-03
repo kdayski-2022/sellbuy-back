@@ -1,9 +1,5 @@
-const axios = require('axios')
-const dotenv = require('dotenv');
 const { getFutureTimestamp } = require('../lib/dates')
 const { TOMORROW, WEEK, TWO_WEEK, MONTH } = require('../config/constants.json')
-dotenv.config();
-const apiUrl = process.env.API_URL;
 
 class PeriodContoller {
 	async getPeriods(req, res) {
