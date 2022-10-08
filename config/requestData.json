@@ -1,0 +1,45 @@
+{
+	"sell_data": {
+		"jsonrpc": "2.0",
+		"method": "private/sell",
+		"params": {
+			"instrument_name": "ETH-PERPETUAL",
+			"amount": 1,
+			"type": "market",
+			"label": "market0000234"
+		}
+	},
+	"buy_data": {
+		"jsonrpc": "2.0",
+		"method": "private/buy",
+		"params": {
+			"instrument_name": "ETH-PERPETUAL",
+			"amount": 1,
+			"type": "market",
+			"label": "market0000234"
+		}
+	},
+	"auth_data": {
+		"jsonrpc": "2.0",
+		"method": "public/auth",
+		"params": {
+			"grant_type": "client_credentials",
+			"client_id": "vOkvf-ew",
+			"client_secret": "VqTAZ1bECTZvHgu0kHtRqYEdPsbUSNaftbVfG1N9Tyc"
+		}
+	},
+	"get_order": {
+		"jsonrpc": "2.0",
+		"method": "private/get_user_trades_by_order",
+		"params": {
+			"order_id": "ETH-584830574"
+		}
+	},
+	"get_index_price": {
+		"jsonrpc": "2.0",
+		"method": "public/get_index_price",
+		"params": {
+			"index_name": "eth_usdc"
+		}
+	}
+}

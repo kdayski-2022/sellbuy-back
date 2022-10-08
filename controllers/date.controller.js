@@ -1,13 +1,15 @@
 const axios = require('axios')
 const dotenv = require('dotenv');
-const { getCurrentDay, getLastDayOfWeek } = require('../lib/dates')
+const { getCurrentDay, getLastDayOfWeek } = require('../lib/dates');
+const { writeLog, updateLog } = require('../lib/logger');
 dotenv.config();
 const apiUrl = process.env.API_URL;
 
 class DateContoller {
 	async getDates(req, res) {
+    const logId = await writeLog({ action: 'getDates', status: 'in progress', req })
       axios
-        .get(`${apiUrl}/get_book_summary_by_currency?currency=ETH&kind=option`)
+        .get(`${apiUrl}/public/get_book_summary_by_currency?currency=ETH&kind=option`)
         .then((apiRes) => {
           const fillteredDate = apiRes.data.result.filter((item) => {
             const [_, stortedDataUnderlying_index] =
@@ -15,9 +17,14 @@ class DateContoller {
             const date = new Date(Date.parse(stortedDataUnderlying_index));
             return date >= getCurrentDay() && date <= getLastDayOfWeek();
           });
+          updateLog(logId, { status: 'success' })
           res.json(fillteredDate);
         })
-        .catch((err) => console.log(err));
+        .catch((err) => {
+          console.log(err)
+          updateLog(logId, { status: 'failed', error: JSON.stringify(err) })
+          res.json({ success: false, data: null, error: e.message })
+        });
 	}
 }
 
