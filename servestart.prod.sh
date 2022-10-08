@@ -1,0 +1,1 @@
+DOTENV_CONFIG_PATH=.env.prod node -r dotenv/config index.js

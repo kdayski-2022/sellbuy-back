@@ -12,7 +12,7 @@
                 },
                 "auth_roken": {
                     "field": "auth_roken",
-                    "seqType": "Sequelize.STRING"
+                    "seqType": "Sequelize.STRING(1000)"
                 },
                 "expire_in": {
                     "field": "expire_in",
@@ -20,7 +20,7 @@
                 },
                 "refresh_token": {
                     "field": "refresh_token",
-                    "seqType": "Sequelize.STRING"
+                    "seqType": "Sequelize.STRING(1000)"
                 },
                 "createdAt": {
                     "allowNull": false,
@@ -65,6 +65,10 @@
                     "field": "execute_date",
                     "seqType": "Sequelize.DATE"
                 },
+                "order": {
+                    "field": "order",
+                    "seqType": "Sequelize.TEXT"
+                },
                 "createdAt": {
                     "allowNull": false,
                     "field": "createdAt",
@@ -79,5 +83,5 @@
             "indexes": []
         }
     },
-    "revision": 5
+    "revision": 7
 }

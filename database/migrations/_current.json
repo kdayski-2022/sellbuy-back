@@ -35,6 +35,41 @@
             },
             "indexes": []
         },
+        "BalanceHistories": {
+            "tableName": "BalanceHistories",
+            "schema": {
+                "id": {
+                    "allowNull": false,
+                    "primaryKey": true,
+                    "autoIncrement": true,
+                    "field": "id",
+                    "seqType": "Sequelize.INTEGER"
+                },
+                "address": {
+                    "field": "address",
+                    "seqType": "Sequelize.STRING"
+                },
+                "tx_hash": {
+                    "field": "tx_hash",
+                    "seqType": "Sequelize.STRING"
+                },
+                "status": {
+                    "field": "status",
+                    "seqType": "Sequelize.STRING"
+                },
+                "createdAt": {
+                    "allowNull": false,
+                    "field": "createdAt",
+                    "seqType": "Sequelize.DATE"
+                },
+                "updatedAt": {
+                    "allowNull": false,
+                    "field": "updatedAt",
+                    "seqType": "Sequelize.DATE"
+                }
+            },
+            "indexes": []
+        },
         "Orders": {
             "tableName": "Orders",
             "schema": {
@@ -51,7 +86,7 @@
                 },
                 "amount": {
                     "field": "amount",
-                    "seqType": "Sequelize.INTEGER"
+                    "seqType": "Sequelize.FLOAT"
                 },
                 "price": {
                     "field": "price",
@@ -64,6 +99,57 @@
                 "execute_date": {
                     "field": "execute_date",
                     "seqType": "Sequelize.DATE"
+                },
+                "order": {
+                    "field": "order",
+                    "seqType": "Sequelize.TEXT"
+                },
+                "from": {
+                    "field": "from",
+                    "seqType": "Sequelize.STRING"
+                },
+                "order_id": {
+                    "field": "order_id",
+                    "seqType": "Sequelize.STRING"
+                },
+                "payment_complete": {
+                    "field": "payment_complete",
+                    "seqType": "Sequelize.BOOLEAN"
+                },
+                "recieve": {
+                    "field": "recieve",
+                    "seqType": "Sequelize.FLOAT"
+                },
+                "createdAt": {
+                    "allowNull": false,
+                    "field": "createdAt",
+                    "seqType": "Sequelize.DATE"
+                },
+                "updatedAt": {
+                    "allowNull": false,
+                    "field": "updatedAt",
+                    "seqType": "Sequelize.DATE"
+                }
+            },
+            "indexes": []
+        },
+        "Users": {
+            "tableName": "Users",
+            "schema": {
+                "id": {
+                    "allowNull": false,
+                    "primaryKey": true,
+                    "autoIncrement": true,
+                    "field": "id",
+                    "seqType": "Sequelize.INTEGER"
+                },
+                "address": {
+                    "field": "address",
+                    "seqType": "Sequelize.STRING"
+                },
+                "balance": {
+                    "field": "balance",
+                    "seqType": "Sequelize.FLOAT"
                 },
                 "createdAt": {
                     "allowNull": false,
@@ -79,5 +165,5 @@
             "indexes": []
         }
     },
-    "revision": 6
+    "revision": 8
 }

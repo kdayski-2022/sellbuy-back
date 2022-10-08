@@ -1,0 +1,98 @@
+{
+	"get_book_summary_by_currency": {
+		"result": [
+			{
+				"volume": 0,
+				"underlying_price": 1562.8735013924784,
+				"underlying_index": "SYN.ETH-23SEP22",
+				"quote_currency": "ETH",
+				"price_change": null,
+				"open_interest": 0,
+				"mid_price": null,
+				"mark_price": 0.016449,
+				"low": null,
+				"last": null,
+				"interest_rate": 0,
+				"instrument_name": "ETH-23SEP22-1800-C",
+				"high": null,
+				"estimated_delivery_price": 1661,
+				"creation_timestamp": 1662460685519,
+				"bid_price": 0.05,
+				"base_currency": "ETH",
+				"ask_price": 0.413
+			}
+		]
+	},
+	"buy_data": {
+		"result": {
+			"trades": [],
+			"order": {
+				"web": false,
+				"time_in_force": "good_til_cancelled",
+				"risk_reducing": false,
+				"replaced": false,
+				"reduce_only": false,
+				"profit_loss": 0,
+				"price": 0.0005,
+				"post_only": false,
+				"order_type": "market",
+				"order_state": "filled",
+				"order_id": "ETH-2758568406",
+				"mmp": false,
+				"max_show": 1,
+				"last_update_timestamp": 1662378210197,
+				"label": "market0000234",
+				"is_liquidation": false,
+				"instrument_name": "ETH-9SEP22-1600-C",
+				"filled_amount": 1,
+				"direction": "sell",
+				"creation_timestamp": 1662378210197,
+				"commission": 0.00029,
+				"average_price": 0.021,
+				"api": true,
+				"amount": 1
+			}
+		}
+	},
+	"get_user_trades_by_order": {
+		"result": [
+			{
+				"trade_seq": 1966042,
+				"trade_id": "ETH-2696068",
+				"timestamp": 1590480712800,
+				"tick_direction": 3,
+				"state": "filled",
+				"self_trade": false,
+				"reduce_only": false,
+				"price": 203.8,
+				"post_only": false,
+				"order_type": "market",
+				"order_id": "ETH-2758568406",
+				"matching_id": null,
+				"mark_price": 0.016449,
+				"liquidity": "T",
+				"instrument_name": "ETH-9SEP22-1600-C",
+				"index_price": 203.89,
+				"fee_currency": "ETH",
+				"fee": 0.00036801,
+				"direction": "buy",
+				"amount": 100
+			}
+		]
+	},
+	"auth_data": {
+		"result": {
+			"access_token": "1582628593469.1MbQ-J_4.CBP-OqOwm_FBdMYj4cRK2dMXyHPfBtXGpzLxhWg31nHu3H_Q60FpE5_vqUBEQGSiMrIGzw3nC37NMb9d1tpBNqBOM_Ql9pXOmgtV9Yj3Pq1c6BqC6dU6eTxHMFO67x8GpJxqw_QcKP5IepwGBD-gfKSHfAv9AEnLJkNu3JkMJBdLToY1lrBnuedF3dU_uARm",
+			"expires_in": 31536000,
+			"refresh_token": "1582628593469.1GP4rQd0.A9Wa78o5kFRIUP49mScaD1CqHgiK50HOl2VA6kCtWa8BQZU5Dr03BhcbXPNvEh3I_MVixKZXnyoBeKJwLl8LXnfo180ckAiPj3zOclcUu4zkXuF3NNP3sTPcDf1B3C1CwMKkJ1NOcf1yPmRbsrd7hbgQ-hLa40tfx6Oa-85ymm_3Z65LZcnCeLrqlj_A9jM",
+			"scope": "connection mainaccount",
+			"token_type": "bearer"
+		}
+	},
+	"get_index_price": {
+		"result": {
+			"estimated_delivery_price": 11628.81,
+			"index_price": 11628.81
+		}
+	}
+}
