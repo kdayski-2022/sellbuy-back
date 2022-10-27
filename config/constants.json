@@ -1,5 +1,5 @@
 {
-	"strike_step_sell": 100,
+	"strike_step_sell": 50,
 	"strike_step_buy": 50,
 	"TOMORROW": "Tomorrow",
 	"WEEK": "Week",

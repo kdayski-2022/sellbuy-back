@@ -11,22 +11,13 @@ const {
 } = require('./lib')
 // const { sendETH, sendUSDC } = require('./transfer');
 
-const direction = 'buy'
-const address = "0x05528440b9e0323d7ccb9baf88b411ce481694a0"
-const hashForTest = "0xb865c49e93b51ac37b43b54cba4443d3661bff8304decdaf5ea69a8dbbbab0c3"
-const amount = 2
-const headers = {
-	'Direction-Type': 'buy',
-	'Session-Token': '4ff90acd0460c2683c445ee2789d472c56322a6aee7672ec562a67c114a2f411',
-	'User-Address': '0x05528440b9e0323d7ccb9baf88b411ce481694a0'
-}
 
 jest.setTimeout(600000)
 
 let prices, periods, validPeriods, orders, postOrders, tx_hashes, userOrders
 
-
-describe('API', () => {
+const testApi = (data) => {
+	const { address, hashForTest, direction, amount, headers } = data
 	describe("GET /api/prices", () => {
 		beforeAll(
 			() => {
@@ -127,6 +118,26 @@ describe('API', () => {
 			postOrdersTest(postOrders)
 		})
 	})
+}
+
+const address = "0x05528440b9e0323d7ccb9baf88b411ce481694a0"
+const hashForTest = "0xb865c49e93b51ac37b43b54cba4443d3661bff8304decdaf5ea69a8dbbbab0c3"
+const amount = 2
+let direction = 'buy'
+let headers = {
+	'Direction-Type': direction,
+	'Session-Token': '4ff90acd0460c2683c445ee2789d472c56322a6aee7672ec562a67c114a2f411',
+	'User-Address': '0x05528440b9e0323d7ccb9baf88b411ce481694a0'
+}
+
+describe('API BUY', () => {
+	testApi({address, hashForTest, direction, amount, headers})
+})
+
+describe('API SELL', () => {
+	direction = 'sell'
+	headers['Direction-Type'] = direction
+	testApi({address, hashForTest, direction, amount, headers})
 })
 
 describe('AUTO PAYMENT', () => {
