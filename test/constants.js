@@ -1,0 +1,16 @@
+const RESPONSE = ['data', 'status']
+const RESPONSE_DATA = ['success', 'data', 'sessionInfo']
+const SESSION_INFO = ['sessionToken', 'userAddress']
+const PRICE_DATA = ['currentPrice', 'prices']
+const PERIOD_DATA = ['periods']
+const PERIOD_ITEM = ['title', 'timestamp', 'recieve', 'percent', 'error']
+const VALID_PERIOD_ITEM = ['title', 'timestamp', 'recieve', 'percent', 'apr', 'days', 'price', 'amount', 'error']
+const ORDER_DATA = ['volume', 'underlying_price', 'underlying_index', 'quote_currency', 'price_change', 'open_interest', 'mid_price', 'mark_price', 'low', 'last', 'interest_rate', 'instrument_name', 'high', 'estimated_delivery_price', 'creation_timestamp', 'bid_price', 'base_currency', 'ask_price', 'recieve']
+const POST_ORDER_DATA = ['orders']
+const USER_ORDER_DATA = ["id", "user_payment_tx_hash", "amount", "price", "instrument_name", "execute_date", "order", "from", "order_id", "payment_complete", "order_complete", "recieve", "status", "target_index_price", "end_index_price", "start_index_price", "settlement_date", "eth_sold", "payout_eth", "payout_usdc", "payout_tx", "direction", "perpetual", "createdAt", "updatedAt"]
+const USER_ORDER_DATA_ORDER = ["web", "time_in_force", "risk_reducing", "replaced", "reduce_only", "profit_loss", "price", "post_only", "order_type", "order_state", "order_id", "mmp", "max_show", "last_update_timestamp", "label", "is_liquidation", "instrument_name", "filled_amount", "direction", "creation_timestamp", "commission", "average_price", "api", "amount"]
+const USER_ORDER_DATA_PERPETUAL = ["jsonrpc", "result", "usIn", "usOut", "usDiff", "testnet"]
+const USER_ORDER_DATA_PERPETUAL_RESULT = ["trades", "order"]
+const USER_ORDER_DATA_PERPETUAL_RESULT_TRADE = ["trade_seq", "trade_id", "timestamp", "tick_direction", "state", "self_trade", "risk_reducing", "reduce_only", "profit_loss", "price", "post_only", "order_type", "order_id", "mmp", "matching_id", "mark_price", "liquidity", "label", "instrument_name", "index_price", "fee_currency", "fee", "direction", "api", "amount"]
+
+module.exports = { RESPONSE, RESPONSE_DATA, SESSION_INFO, PRICE_DATA, PERIOD_DATA, PERIOD_ITEM, VALID_PERIOD_ITEM, ORDER_DATA, POST_ORDER_DATA, USER_ORDER_DATA, USER_ORDER_DATA_PERPETUAL ,USER_ORDER_DATA_PERPETUAL_RESULT, USER_ORDER_DATA_PERPETUAL_RESULT_TRADE, USER_ORDER_DATA_ORDER }

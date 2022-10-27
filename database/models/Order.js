@@ -21,5 +21,6 @@ module.exports = {
     payout_eth: DataTypes.FLOAT,
     payout_usdc: DataTypes.FLOAT,
     payout_tx: DataTypes.STRING,
-    confirmation: DataTypes.BOOLEAN
+    direction: DataTypes.STRING,
+    perpetual: DataTypes.TEXT
 };

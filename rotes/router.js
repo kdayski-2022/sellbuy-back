@@ -5,8 +5,8 @@ const dateContoller = require('../controllers/date.controller')
 const orderContoller = require('../controllers/order.controller')
 const periodContoller = require('../controllers/period.controller')
 const strikeContoller = require('../controllers/strike.controller')
-const userController = require('../controllers/user.controller')
 const adminPanel = require('../controllers/adminPanel.controller')
+const sessionController = require('../controllers/session.controller')
 
 router.get('/dates', dateContoller.getDates)
 
@@ -18,14 +18,12 @@ router.get('/periods', periodContoller.getPeriods)
 router.get('/periods_price', periodContoller.getPricePeriods)
 
 router.get('/price', priceContoller.getCurrentPrice)
-router.get('/prices', priceContoller.getPrices)
 router.get('/prices/sell', priceContoller.getSellPrices)
 router.get('/prices/buy', priceContoller.getBuyPrices)
 
 router.get('/strikes', strikeContoller.getStrikes)
 
-router.get('/balance/:userAddress', userController.getBalance)
-router.post('/balance', userController.postBalance)
+router.get('/session', sessionController.create)
 
 router.post('/login', adminPanel.login)
 

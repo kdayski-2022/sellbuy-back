@@ -3,18 +3,32 @@
 		"jsonrpc": "2.0",
 		"method": "private/sell",
 		"params": {
-			"instrument_name": "ETH-PERPETUAL",
-			"amount": 1,
 			"type": "market",
 			"label": "market0000234"
 		}
 	},
 	"buy_data": {
 		"jsonrpc": "2.0",
+		"method": "private/sell",
+		"params": {
+			"type": "market",
+			"label": "market0000234"
+		}
+	},
+	"perpetual_data": {
+		"jsonrpc": "2.0",
+		"method": "private/sell",
+		"params": {
+			"instrument_name": "ETH-PERPETUAL",
+			"type": "market",
+			"label": "market0000234"
+		}
+	},
+	"cancel_data": {
+		"jsonrpc": "2.0",
 		"method": "private/buy",
 		"params": {
 			"instrument_name": "ETH-PERPETUAL",
-			"amount": 1,
 			"type": "market",
 			"label": "market0000234"
 		}

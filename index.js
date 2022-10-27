@@ -14,6 +14,7 @@ const Transfer = require('./lib/transfer');
 const Web3 = require('web3')
 const crud = require('./lib/express-crud')
 const { smartRound } = require('./lib/lib')
+const { writeLog, updateLog, destroyLog } = require('./lib/logger')
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ app.use(cors())
 app.use(express.json())
 app.use('/api', useRouter)
 app.crud('/api/order_crud', model.Order)
+app.crud('/api/log_crud', model.Log)
 
 db.connection
 	.sync({ alter: true })
@@ -51,8 +53,6 @@ db.connection
 							}
 						}
 					)
-
-					if (orders.length) console.log(orders)
 
 					orders.forEach(async ({ user_payment_tx_hash, order_id }) => {
 						if (user_payment_tx_hash && order_id) {
@@ -87,25 +87,26 @@ db.connection
 					)
 
 					orders.forEach(async (order) => {
+						const logId = await writeLog({ action: 'system auto order complete', status: 'in progress' })
 						try {
 							const orderDetails = JSON.parse(order.order) ? JSON.parse(order.order) : null
-							if (orderDetails && order.order_id 
-								// || order.id === 111
-								) {
+							if (orderDetails && order.order_id) {
 								get_order.params.order_id = order.order_id
 								const { data } = await axios.post(apiUrl, get_order, { headers: { 'Authorization': `Bearer ${accessToken}` } })
+								await destroyLog(logId)
 								const orderFrashData = data?.result.length ? data?.result[0] : {}
 								const executed = orderFrashData.state === 'filled' || orderFrashData.order_state === 'filled' ? true : false
-								if (executed 
-									// || order.id === 111
-									) {
+								if (executed) {
 									if (order.status !== 'pending_approve') {
 										const indexPriceData = await axios.post(apiUrl, get_index_price)
 										await db.models.Order.update({ status: 'pending_approve', end_index_price: indexPriceData?.data?.result?.index_price }, { where: { order_id: order.order_id } })
-										const orderUpdated = await db.models.Order.findOne({ where: { order_id: order.order_id } })
+										const orderUpdated = await db.models.Order.findOne({
+											attributes: { exclude: ['perpetual'] },
+											where: { order_id: order.order_id }
+										})
 
 										let recieve
-										if (orderDetails.direction === 'sell') {
+										if (order.direction === 'sell') {
 											if (orderUpdated.end_index_price >= orderUpdated.target_index_price) {
 												recieve = `${parseFloat(orderUpdated.recieve) + parseFloat(orderUpdated.price)} USDC`
 											} else {
@@ -120,7 +121,7 @@ db.connection
 												recieve = `${parseFloat(orderUpdated.price) * parseFloat(orderUpdated.amount) + parseFloat(orderUpdated.recieve)} USDC`
 											}
 										}
-										
+
 
 										telegram.sendApprove(`Confirm the payment which you're about to make.\n${orderUpdated.from} will recieve ${recieve}\n\n${JSON.stringify(orderUpdated)}`, orderUpdated)
 										return
@@ -128,8 +129,7 @@ db.connection
 								}
 							}
 						} catch (e) {
-							// return
-							// console.log(order)
+							await updateLog(logId, { status: 'failed', error: JSON.stringify(e) })
 							console.log(e)
 						}
 					})
@@ -137,92 +137,6 @@ db.connection
 					console.log(e)
 				}
 			}, 10000)
-
-
-			// TODO
-			// // ! auto send currency
-			// setInterval(async () => {
-			// 	try {
-			// 		const orders = await db.models.Order.findAll(
-			// 			{
-			// 				where: {
-			// 					[db.Op.and]: [
-			// 						{ execute_date: { [db.Op.lte]: new Date() } },
-			// 						{ order_complete: false },
-			// 						{ status: { [db.Op.notIn]: ['approved', 'denied'] } },
-			// 						{ confirmation: true }
-			// 					]
-			// 				}
-			// 			}
-			// 		)
-
-			// 		orders.forEach(async (order) => {
-			// 			try {
-			// 				console.log(order)
-			// 				const orderDetails = JSON.parse(order.order) ? JSON.parse(order.order) : null
-			// 				const order_id = order.order_id
-			// 				if (orderDetails && order_id) {
-			// 					let status, message, tx
-			// 					const isValidToSell = order.end_index_price >= order.target_index_price
-			// 					const USDCToPay = Math.floor(parseFloat(order.recieve)) + parseFloat(order.price)
-			// 					const ETHToPay = parseFloat(order.amount) + (parseFloat(order.recieve) / parseFloat(order.end_index_price))
-								
-			// 					if (isValidToSell) {
-			// 						const res = await transfer.sendUSDC(order.from, USDCToPay)
-			// 						status = res.status
-			// 						message = res.message
-			// 						tx = res.tx
-			// 					} else {
-			// 						const res = await transfer.sendETH(order.from, ETHToPay)
-			// 						status = res.status
-			// 						message = res.message
-			// 						tx = res.tx
-			// 					}
-								
-			// 					if (status === true) {
-			// 						await db.models.Order.update({ order_complete: true, status: 'approved', settlement_date: new Date(), eth_sold: isValidToSell, payout_eth: ETHToPay, payout_usdc: USDCToPay, payout_tx: tx }, { where: { order_id } })
-			// 						telegram.send(`success!\n${message}`)
-			// 					} else {
-			// 						await db.models.Order.update({ order_complete: false, status }, { where: { order_id } })
-			// 						telegram.send(`failed!\n${message}`)
-			// 					}
-			// 				}
-			// 			} catch (e) {
-			// 				// return
-			// 				// console.log(order)
-			// 				console.log(e)
-			// 			}
-			// 		})
-			// 	} catch (e) {
-			// 		console.log(e)
-			// 	}
-			// }, 10000)
-
-			// // ! auto balance updater
-			// setInterval(async () => {
-			// 	try {
-			// 		const web3 = new Web3(infuraRpc);
-			// 		const BN = web3.utils.BN
-			// 		const tokenRequests = await db.models.BalanceHistory.findAll({ where: { status: 'pending' } })
-			// 		tokenRequests.forEach(async ({ address, tx_hash }) => {
-			// 			console.log({address, tx_hash})
-			// 			if (address && tx_hash) {
-			// 				const { status } = await web3.eth.getTransactionReceipt(tx_hash)
-			// 				const { value } = await web3.eth.getTransaction(tx_hash)
-			// 				const valueEth = web3.utils.fromWei(new BN(value), 'ether')
-			// 				if (status) {
-			// 					const { balance } = await db.models.User.findOne({ where: { address: address.toLowerCase() } })
-			// 					await db.models.User.update({ balance: parseFloat(balance) + parseFloat(valueEth) }, { where: { address: address } })
-			// 					await db.models.BalanceHistory.update({ status: 'complete' }, { where: { tx_hash } })
-
-			// 					console.log(`for ${address} updated balance for ${valueEth} total is ${parseFloat(balance) + parseFloat(valueEth)}`)
-			// 				}
-			// 			}
-			// 		})
-			// 	} catch (e) {
-			// 		console.log(e)
-			// 	}
-			// }, 5000)
 		})
 	})
 	.catch((e) => console.log(e))

@@ -1,7 +1,9 @@
 const db = require('../database');
 const crypto = require("crypto")
 const MANAGER_TOKEN_KEY = 'A-Auth-Token'
-var empty = require('is-empty')
+var empty = require('is-empty');
+const { checkSession } = require('../lib/session');
+const { writeLog, updateLog } = require('../lib/logger');
 
 function getManagerTokenFromHeader(req) {
     return (!empty(req.headers[MANAGER_TOKEN_KEY.toLowerCase()])) ? req.headers[MANAGER_TOKEN_KEY.toLowerCase()] : null
@@ -40,6 +42,17 @@ const Session = {
         }
         return has
     },
+    create: async(req, res) => {
+        const logId = await writeLog({ action: 'getSession', status: 'in progress', sessionInfo: {}, req })
+        try {
+            const sessionInfo = await checkSession(req)
+            updateLog(logId, { status: 'success', ...sessionInfo })
+            res.json({ success: true, sessionInfo });
+        } catch(e) {
+            updateLog(logId, { status: 'failed', error: JSON.stringify(e) })
+			res.json({ success: false, error: err, sessionInfo })
+        }
+    }
 }
 
 module.exports = Session;

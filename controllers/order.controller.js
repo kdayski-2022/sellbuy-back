@@ -2,27 +2,31 @@ const axios = require('axios')
 const dotenv = require('dotenv');
 const Web3 = require('web3')
 const db = require('../database')
-const { buy_data, sell_data, get_index_price } = require('../config/requestData.json')
+const { buy_data, sell_data, get_index_price, perpetual_data } = require('../config/requestData.json')
 const { getDaysDifference, getValidDays, getTimestamp } = require('../lib/dates')
 const { getAccessToken } = require('../lib/auth');
 const { writeLog, updateLog } = require('../lib/logger');
+const { checkSession } = require('../lib/session');
+const { convertUSDCToETH } = require('../lib/lib');
 dotenv.config();
 const apiUrl = process.env.API_URL;
 const infuraRpc = process.env.INFURA_RPC;
 
 class OrderContoller {
 	async getOrder(req, res) {
-		const logId = await writeLog({ action: 'getOrder', status: 'in progress', req })
+		const sessionInfo = await checkSession(req)
+		const logId = await writeLog({ action: 'getOrder', status: 'in progress', sessionInfo, req })
 		axios
 		.get(`${apiUrl}/public/get_book_summary_by_currency?currency=ETH&kind=option`)
 		.then((apiRes) => {
 		  try {
 			const { period, price, amount } = req.query;
+			const direction = req.headers['direction-type']
 
 			const filteredTypes = apiRes.data.result.filter((item) => {
 				const typesArray = item.instrument_name.split('-')
 				const type = typesArray[typesArray.length - 1]
-				return type === 'C'
+				return direction === 'sell' ? type === 'C' : type === 'P'
 			})
 	
 			const fillteredPrices = filteredTypes.filter(
@@ -63,20 +67,22 @@ class OrderContoller {
 			  )
 			  .reverse()[0];
 			const { estimated_delivery_price, bid_price } = maxBidPriceObj;
-			const recieve = estimated_delivery_price * bid_price * amount * 0.7;
+			const recieve = estimated_delivery_price * bid_price * Number(amount) * 0.7;
 
 			updateLog(logId, { status: 'success' })
-			res.json({ success: true, data: { ...maxBidPriceObj, recieve } });
+			res.json({ success: true, data: { ...maxBidPriceObj, recieve, amount: Number(amount), price: Number(price), period: Number(period) }, sessionInfo });
 		  } catch (e) {
 			updateLog(logId, { status: 'failed', error: JSON.stringify(e) })
-			res.json({ success: false, data: null, message: e.message });
+			res.json({ success: false, data: null, message: e.message, sessionInfo });
 		  }
 		});
 	}
 
 	async postOrder(req, res) {
-		const logId = await writeLog({ action: 'postOrder', status: 'in progress', req })
-		const { amount, price, period, orderData, address, hash, direction } = req.body
+		const sessionInfo = await checkSession(req)
+		const logId = await writeLog({ action: 'postOrder', status: 'in progress', sessionInfo, req })
+		const { amount, price, period, orderData, address, hash } = req.body
+		const direction = req.headers['direction-type']
 		const { instrument_name, estimated_delivery_price, bid_price  } = orderData
 		const postData = direction === 'sell' ? sell_data : buy_data
 		postData.params.instrument_name = instrument_name
@@ -85,12 +91,10 @@ class OrderContoller {
 		try {
 			// add balance
 			direction === 'sell' ? telegram.send(`User ${address} deposited ${amount} ETH`) : telegram.send(`User ${address} deposited ${Number(amount) * Number(price)} USDC`) 
-			await db.models.BalanceHistory.create({ address, tx_hash: hash, status: 'pending' })
-			let user = await db.models.User.findOne({ where: { address: address.toLowerCase() } })
-			if (!user) user = await db.models.User.create({ address, balance: 0 })
 			const web3 = new Web3(infuraRpc);
 
 			const { status } = await web3.eth.getTransactionReceipt(hash)
+			const recieve = estimated_delivery_price * bid_price * amount * 0.7
 
 			// post order
 			if (status) {
@@ -103,59 +107,61 @@ class OrderContoller {
 					payment_complete: status ? true : false,
 					instrument_name,
 					execute_date: period,
-					recieve: estimated_delivery_price * bid_price * amount * 0.7,
+					recieve,
 					status: 'pending',
+					direction
 				})
 				const accessToken = await getAccessToken()
-				
-				console.log({ accessToken })
-				console.log({ apiUrl, postData })
 
 				const { data } = await axios.post(apiUrl, postData, { headers: {'Authorization': `Bearer ${accessToken}`} })
+
 				const indexPriceData = await axios.post(apiUrl, get_index_price)
+
+				let perpetual
+				if (direction === 'buy') {
+					const perperualData = perpetual_data
+					perperualData.params.amount = Math.ceil(parseFloat(amount) * parseFloat(price) + parseFloat(recieve))
+					perpetual = await axios.post(apiUrl, perperualData, { headers: {'Authorization': `Bearer ${accessToken}`} })
+					perpetual = JSON.stringify(perpetual.data)
+				}
 
 				await db.models.Order.update({
 					status: 'created',
 					order_id: data?.result?.order?.order_id,
 					order: JSON.stringify(data?.result?.order) || '{}',
 					target_index_price: price,
-					start_index_price: indexPriceData?.data?.result?.index_price
+					start_index_price: indexPriceData?.data?.result?.index_price,
+					perpetual
 				}, { where: { user_payment_tx_hash: hash } })
 				
 				telegram.send(`Order was made by user ${address}\n${JSON.stringify(data?.result?.order) || '{}'}`)
 				const orders = await db.models.Order.findAll({ where: { from: address.toLowerCase() } })
-				const { balance } = await db.models.User.findOne({ where: { address: address.toLowerCase() } })
-				if (parseFloat(balance) >= parseFloat(amount)) {
-					await db.models.User.update({ balance: parseFloat(balance) - parseFloat(amount) }, { where: { address: address.toLowerCase() } })
-					res.json({ success: true, data: { orders }, message: 'Order was made' });
-				} else {
-					res.json({ success: true, data: { orders }, message: 'Payment is pending' });
-				}
+				res.json({ success: true, data: { orders }, message: 'Order was made', sessionInfo });
 			} else {
 				console.log('Transaction was not mined')
-				res.json({ success: false, data: null, error: 'Transaction was not mined' });
+				res.json({ success: false, data: null, error: 'Transaction was not mined', sessionInfo });
 			}
 			updateLog(logId, { status: 'success' })
 		} catch(e) {
 			updateLog(logId, { status: 'failed', error: JSON.stringify(e) })
-			await db.models.ErrorLog.create({ log: JSON.stringify(e) })
 			telegram.send(`Order ${instrument_name} creation failed by user ${address}\n${JSON.stringify(e?.response?.data?.error)}`)
-			res.json({ success: false, data: null, error: e?.response?.data?.error?.message });
+			res.json({ success: false, data: null, error: e?.response?.data?.error?.message, sessionInfo });
 		}
 	}
 
 	async getUserOrders(req, res) {
-		const logId = await writeLog({ action: 'getUserOrders', status: 'in progress', req })
+		const sessionInfo = await checkSession(req)
+		const logId = await writeLog({ action: 'getUserOrders', status: 'in progress', sessionInfo, req })
 		const { userAddress } = req.query
 
 		try {
 			const orders = await db.models.Order.findAll({where: {from: userAddress.toLowerCase()}})
 			updateLog(logId, { status: 'success' })
-			res.json({ success: true, data: orders });
+			res.json({ success: true, data: orders, sessionInfo });
 		} catch(e) {
 			console.log(e)
 			updateLog(logId, { status: 'failed', error: JSON.stringify(e) })
-			res.json({ success: false, data: null, error: e?.response?.data?.error?.message });
+			res.json({ success: false, data: null, error: e?.response?.data?.error?.message, sessionInfo });
 		}
 	}
 }

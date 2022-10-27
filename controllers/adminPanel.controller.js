@@ -19,6 +19,7 @@ const AdminPanel = {
                     password: md5(md5Salt + password)
                 }
             })
+            console.log(await db.models.Manager.findAll())
             if (!empty(manager)) {
                 allow = true
                 var d = new Date()

@@ -3,12 +3,14 @@ const { TOMORROW, WEEK, TWO_WEEK, MONTH } = require('../config/constants.json');
 const axios = require('axios')
 const dotenv = require('dotenv');
 const { writeLog, updateLog } = require('../lib/logger');
+const { checkSession } = require('../lib/session');
 dotenv.config();
 const apiUrl = process.env.API_URL;
 
 class PeriodContoller {
 	async getPeriods(req, res) {
-		const logId = await writeLog({ action: 'getPeriods', status: 'in progress', req })
+		const sessionInfo = await checkSession(req)
+		const logId = await writeLog({ action: 'getPeriods', status: 'in progress', sessionInfo, req })
 		try {
 			const periods = [
 				{
@@ -23,20 +25,22 @@ class PeriodContoller {
 				{ title: `${getDaysDifference(getFutureTimestamp(MONTH))} days`, timestamp: getFutureTimestamp(MONTH) },
 			  ];
 			  updateLog(logId, { status: 'success' })
-			  res.json({ success: true, data: { periods } });
+			  res.json({ success: true, data: { periods }, sessionInfo });
 		} catch(e) {
 			updateLog(logId, { status: 'failed', error: JSON.stringify(e) })
-			res.json({ success: false, data: null });
+			res.json({ success: false, data: null, sessionInfo });
 		}
 	}
 
 	async getPricePeriods(req, res) {
-		const logId = await writeLog({ action: 'getPricePeriods', status: 'in progress', req })
+		const sessionInfo = await checkSession(req)
+		const logId = await writeLog({ action: 'getPricePeriods', status: 'in progress', sessionInfo, req })
 		axios
 		.get(`${apiUrl}/public/get_book_summary_by_currency?currency=ETH&kind=option`)
 		.then((apiRes) => {
 		  try {
 			const { price, amount } = req.query;
+			const direction = req.headers['direction-type']
 			const periods = [
 				{
 					title: '1 day',
@@ -56,7 +60,7 @@ class PeriodContoller {
 				const filteredTypes = apiRes.data.result.filter((item) => {
 					const typesArray = item.instrument_name.split('-')
 					const type = typesArray[typesArray.length - 1]
-					return type === 'C'
+					return direction === 'sell' ? type === 'C' : type === 'P'
 				})
 		
 				const fillteredPrices = filteredTypes.filter(
@@ -101,15 +105,16 @@ class PeriodContoller {
 				const percent = recieve / price * 100
 				const days = getDaysDifference(timestamp)
 				const apr = Math.round(parseFloat(percentForEach / days * 365) * 100) / 100
-				result.push( { title, timestamp, recieve, percent, apr, days, error: null })
+				if (!Math.floor(recieve)) return result.push({ title, timestamp, recieve: null, percent: null, error: "Order wasn't found" })
+				result.push( { title, timestamp, recieve, percent, apr, days, price, amount, error: null })
 			})
 			
 			updateLog(logId, { status: 'success' })
-			res.json({ success: true, data: { periods: result } });
+			res.json({ success: true, data: { periods: result }, sessionInfo });
 		  } catch (e) {
 			console.log(e)
 			updateLog(logId, { status: 'failed', error: JSON.stringify(e) })
-			res.json({ success: false, data: { periods: [] }, error: e.message });
+			res.json({ success: false, data: { periods: [] }, error: e.message, sessionInfo });
 		  }
 		});
 	}

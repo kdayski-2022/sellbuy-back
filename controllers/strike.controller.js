@@ -1,12 +1,14 @@
 const axios = require('axios')
 const dotenv = require('dotenv');
 const { updateLog, writeLog } = require('../lib/logger');
+const { checkSession } = require('../lib/session');
 dotenv.config();
 const apiUrl = process.env.API_URL;
 
 class StrikeContoller {
 	async getStrikes(req, res) {
-		const logId = await writeLog({ action: 'getStrikes', status: 'in progress', req })
+		const sessionInfo = await checkSession(req)
+		const logId = await writeLog({ action: 'getStrikes', status: 'in progress', sessionInfo, req })
 		try {
 			let strikes = [];
 			axios
@@ -20,11 +22,11 @@ class StrikeContoller {
 			for (data of strikes) {
 			}
 			updateLog(logId, { status: 'success' })
-			res.json({ success: true, data: {  } })
+			res.json({ success: true, data: {  }, sessionInfo })
 			//TODO Вытащить все старйки интересующих нас цен
 		} catch(e) {
 			updateLog(logId, { status: 'failed', error: JSON.stringify(e) })
-			res.json({ success: false, data: null })
+			res.json({ success: false, data: null, sessionInfo })
 		}
 	}
 }
