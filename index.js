@@ -74,7 +74,7 @@ db.connection
 				try {
 					const accessToken = await getAccessToken()
 
-					const orders = await db.models.Order.findAll(
+					let orders = await db.models.Order.findAll(
 						{
 							where: {
 								[db.Op.and]: [
@@ -95,7 +95,7 @@ db.connection
 								const { data } = await axios.post(apiUrl, get_order, { headers: { 'Authorization': `Bearer ${accessToken}` } })
 								await destroyLog(logId)
 								const orderFrashData = data?.result.length ? data?.result[0] : {}
-								const executed = orderFrashData.state === 'filled' || orderFrashData.order_state === 'filled' ? true : false
+								const executed = orderFrashData.state === 'filled' || orderFrashData.order_state === 'filled' ? false : true
 								if (executed) {
 									if (order.status !== 'pending_approve') {
 										const indexPriceData = await axios.post(apiUrl, get_index_price)
@@ -129,8 +129,8 @@ db.connection
 								}
 							}
 						} catch (e) {
-							await updateLog(logId, { status: 'failed', error: JSON.stringify(e) })
-							console.log(e)
+							await updateLog(logId, { status: 'failed', error: JSON.stringify(e.response.data) })
+							console.log(e.response.data)
 						}
 					})
 				} catch (e) {
