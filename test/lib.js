@@ -84,7 +84,6 @@ const ordersTest = (orders) => {
 		expect(typeof orderItem.quote_currency).toBe("string")
 		expect(typeof orderItem.open_interest).toBe("number")
 		expect(typeof orderItem.mark_price).toBe("number")
-		expect(typeof orderItem.last).toBe("number")
 		expect(typeof orderItem.interest_rate).toBe("number")
 		expect(typeof orderItem.instrument_name).toBe("string")
 		expect(typeof orderItem.estimated_delivery_price).toBe("number")
@@ -97,8 +96,8 @@ const ordersTest = (orders) => {
 		expect(orderItem.price).toBeGreaterThan(0)
 		expect(orderItem.amount).toBeGreaterThanOrEqual(1)
 		expect(orderItem.recieve).toBeGreaterThanOrEqual(1)
-
 		// ? unnecessary
+		// expect(typeof orderItem.last).toBe("number")
 		// expect(typeof orderItem.price_change).toBe("number")
 		// expect(typeof orderItem.mid_price).toBe("number")
 		// expect(typeof orderItem.low).toBe("number")
@@ -149,11 +148,11 @@ const userOrderTypesCheck = (userOrder) => {
 	expect(typeof userOrder.direction).toBe("string")
 	expect(typeof userOrder.createdAt).toBe("string")
 	expect(typeof userOrder.updatedAt).toBe("string")
-	if (userOrder.direction === 'buy') {
-		expect(typeof userOrder.perpetual).toBe("string")
-		const perpetual = JSON.parse(userOrder.perpetual)
-		expect(perpetual && typeof perpetual === 'object').toBe(true)
-	}
+	// if (userOrder.direction === 'buy') {
+	// 	expect(typeof userOrder.perpetual).toBe("string")
+	// 	const perpetual = JSON.parse(userOrder.perpetual)
+	// 	expect(perpetual && typeof perpetual === 'object').toBe(true)
+	// }
 	if (userOrder.payment_complete && userOrder.order_complete && userOrder.status === 'approved') {
 		expect(typeof userOrder.end_index_price).toBe("number")
 		expect(typeof userOrder.start_index_price).toBe("number")
@@ -254,10 +253,10 @@ const userOrdersTest = (userOrders) => {
 		userOrderTypesCheck(userOrder)
 		const orderWeb = JSON.parse(userOrder.order)
 		userOrderWebTypesCheck(orderWeb)
-		if (userOrder.direction === 'buy') {
-			const perpetual = JSON.parse(userOrder.perpetual)
-			userOrderPerpetualTypesCheck(perpetual)
-		}
+		// if (userOrder.direction === 'buy') {
+		// 	const perpetual = JSON.parse(userOrder.perpetual)
+		// 	userOrderPerpetualTypesCheck(perpetual)
+		// }
 	})
 }
 

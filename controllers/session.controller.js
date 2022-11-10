@@ -4,7 +4,7 @@ const MANAGER_TOKEN_KEY = 'A-Auth-Token'
 var empty = require('is-empty');
 const { checkSession } = require('../lib/session');
 const { writeLog, updateLog } = require('../lib/logger');
-
+const { parseError } = require('../lib/lib');
 function getManagerTokenFromHeader(req) {
     return (!empty(req.headers[MANAGER_TOKEN_KEY.toLowerCase()])) ? req.headers[MANAGER_TOKEN_KEY.toLowerCase()] : null
 }
@@ -49,7 +49,7 @@ const Session = {
             updateLog(logId, { status: 'success', ...sessionInfo })
             res.json({ success: true, sessionInfo });
         } catch(e) {
-            updateLog(logId, { status: 'failed', error: JSON.stringify(e) })
+            updateLog(logId, { status: 'failed', error: parseError(e) })
 			res.json({ success: false, error: err, sessionInfo })
         }
     }

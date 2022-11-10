@@ -4,9 +4,9 @@ const axios = require('axios')
 const dotenv = require('dotenv');
 const { writeLog, updateLog } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
+const { parseError } = require('../lib/lib');
 dotenv.config();
 const apiUrl = process.env.API_URL;
-
 class PeriodContoller {
 	async getPeriods(req, res) {
 		const sessionInfo = await checkSession(req)
@@ -27,7 +27,7 @@ class PeriodContoller {
 			  updateLog(logId, { status: 'success' })
 			  res.json({ success: true, data: { periods }, sessionInfo });
 		} catch(e) {
-			updateLog(logId, { status: 'failed', error: JSON.stringify(e) })
+			updateLog(logId, { status: 'failed', error: parseError(e) })
 			res.json({ success: false, data: null, sessionInfo });
 		}
 	}
@@ -112,8 +112,7 @@ class PeriodContoller {
 			updateLog(logId, { status: 'success' })
 			res.json({ success: true, data: { periods: result }, sessionInfo });
 		  } catch (e) {
-			console.log(e)
-			updateLog(logId, { status: 'failed', error: JSON.stringify(e) })
+			updateLog(logId, { status: 'failed', error: parseError(e) })
 			res.json({ success: false, data: { periods: [] }, error: e.message, sessionInfo });
 		  }
 		});

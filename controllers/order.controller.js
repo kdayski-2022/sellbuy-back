@@ -7,7 +7,7 @@ const { getDaysDifference, getValidDays, getTimestamp } = require('../lib/dates'
 const { getAccessToken } = require('../lib/auth');
 const { writeLog, updateLog } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
-const { convertUSDCToETH } = require('../lib/lib');
+const { convertUSDCToETH, parseError } = require('../lib/lib');
 dotenv.config();
 const apiUrl = process.env.API_URL;
 const infuraRpc = process.env.INFURA_RPC;
@@ -72,7 +72,7 @@ class OrderContoller {
 			updateLog(logId, { status: 'success' })
 			res.json({ success: true, data: { ...maxBidPriceObj, recieve, amount: Number(amount), price: Number(price), period: Number(period) }, sessionInfo });
 		  } catch (e) {
-			updateLog(logId, { status: 'failed', error: JSON.stringify(e) })
+			updateLog(logId, { status: 'failed', error: parseError(e) })
 			res.json({ success: false, data: null, message: e.message, sessionInfo });
 		  }
 		});
@@ -90,11 +90,14 @@ class OrderContoller {
 
 		try {
 			// add balance
-			direction === 'sell' ? telegram.send(`User ${address} deposited ${amount} ETH`) : telegram.send(`User ${address} deposited ${Number(amount) * Number(price)} USDC`) 
+			direction === 'sell' ?
+				telegram.send(`User ${address} deposited ${amount} ETH`) :
+				telegram.send(`User ${address} deposited ${Number(amount) * Number(price)} USDC`) 
 			const web3 = new Web3(infuraRpc);
 
-			const { status } = await web3.eth.getTransactionReceipt(hash)
-			const recieve = estimated_delivery_price * bid_price * amount * 0.7
+			const transactionReceipt = await web3.eth.getTransactionReceipt(hash)
+			const status = transactionReceipt && transactionReceipt.status
+			const recieve = estimated_delivery_price * bid_price * Number(amount) * 0.7
 
 			// post order
 			if (status) {
@@ -117,33 +120,37 @@ class OrderContoller {
 
 				const indexPriceData = await axios.post(apiUrl, get_index_price)
 
-				let perpetual
-				if (direction === 'buy') {
-					const perperualData = perpetual_data
-					perperualData.params.amount = Math.ceil(parseFloat(amount) * parseFloat(price) + parseFloat(recieve))
-					perpetual = await axios.post(apiUrl, perperualData, { headers: {'Authorization': `Bearer ${accessToken}`} })
-					perpetual = JSON.stringify(perpetual.data)
-				}
+				// let perpetual
+				// if (direction === 'buy') {
+				// 	const perperualData = perpetual_data
+				// 	perperualData.params.amount = Math.ceil(parseFloat(amount) * parseFloat(price) + parseFloat(recieve))
+				// 	perpetual = await axios.post(apiUrl, perperualData, { headers: {'Authorization': `Bearer ${accessToken}`} })
+				// 	perpetual = JSON.stringify(perpetual.data)
+				// }
+
+				const order_id = data && data.result && data.result.order && data.result.order.order_id ? data.result.order.order_id : null
+				const order = data && data.result && data.result.order ? JSON.stringify(data.result.order) : {}
+				const start_index_price = indexPriceData && indexPriceData.data && indexPriceData.data.result && indexPriceData.data.result.index_price ? indexPriceData.data.result.index_price : null
 
 				await db.models.Order.update({
 					status: 'created',
-					order_id: data?.result?.order?.order_id,
-					order: JSON.stringify(data?.result?.order) || '{}',
+					order_id,
+					order,
 					target_index_price: price,
-					start_index_price: indexPriceData?.data?.result?.index_price,
-					perpetual
+					start_index_price,
+					// perpetual
 				}, { where: { user_payment_tx_hash: hash } })
 				
 				telegram.send(`Order was made by user ${address}\n${JSON.stringify(data?.result?.order) || '{}'}`)
 				const orders = await db.models.Order.findAll({ where: { from: address.toLowerCase() } })
 				res.json({ success: true, data: { orders }, message: 'Order was made', sessionInfo });
+				updateLog(logId, { status: 'success' })
 			} else {
-				console.log('Transaction was not mined')
 				res.json({ success: false, data: null, error: 'Transaction was not mined', sessionInfo });
+				updateLog(logId, { status: 'failed', error: 'Transaction was not mined' })
 			}
-			updateLog(logId, { status: 'success' })
 		} catch(e) {
-			updateLog(logId, { status: 'failed', error: JSON.stringify(e) })
+			updateLog(logId, { status: 'failed', error: parseError(e) })
 			telegram.send(`Order ${instrument_name} creation failed by user ${address}\n${JSON.stringify(e?.response?.data?.error)}`)
 			res.json({ success: false, data: null, error: e?.response?.data?.error?.message, sessionInfo });
 		}
@@ -159,8 +166,7 @@ class OrderContoller {
 			updateLog(logId, { status: 'success' })
 			res.json({ success: true, data: orders, sessionInfo });
 		} catch(e) {
-			console.log(e)
-			updateLog(logId, { status: 'failed', error: JSON.stringify(e) })
+			updateLog(logId, { status: 'failed', error: parseError(e) })
 			res.json({ success: false, data: null, error: e?.response?.data?.error?.message, sessionInfo });
 		}
 	}

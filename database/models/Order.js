@@ -22,5 +22,6 @@ module.exports = {
     payout_usdc: DataTypes.FLOAT,
     payout_tx: DataTypes.STRING,
     direction: DataTypes.STRING,
-    perpetual: DataTypes.TEXT
+    perpetual: DataTypes.TEXT,
+    autopay: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
 };

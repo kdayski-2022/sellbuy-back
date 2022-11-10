@@ -19,7 +19,6 @@ class PriceContoller {
 				res.json({ success: true, data: { currentPrice }, sessionInfo });
 			})
 			.catch((err) => {
-				console.log(err)
 				updateLog(logId, { status: 'failed', error: JSON.stringify(err) })
 				res.json({ success: false, data: null, sessionInfo });
 			});

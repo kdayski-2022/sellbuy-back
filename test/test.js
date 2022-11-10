@@ -135,9 +135,7 @@ describe('API BUY', () => {
 })
 
 describe('API SELL', () => {
-	direction = 'sell'
-	headers['Direction-Type'] = direction
-	testApi({address, hashForTest, direction, amount, headers})
+	testApi({address, hashForTest, direction: 'sell', amount, headers: {...headers, 'Direction-Type': 'sell'}})
 })
 
 describe('AUTO PAYMENT', () => {

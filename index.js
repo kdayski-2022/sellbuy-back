@@ -13,7 +13,7 @@ const { get_order, get_index_price } = require('./config/requestData.json');
 const Transfer = require('./lib/transfer');
 const Web3 = require('web3')
 const crud = require('./lib/express-crud')
-const { smartRound } = require('./lib/lib')
+const { smartRound, parseError } = require('./lib/lib')
 const { writeLog, updateLog, destroyLog } = require('./lib/logger')
 
 dotenv.config();
@@ -39,6 +39,22 @@ db.connection
 	.then(async () => {
 		app.listen(PORT, async () => {
 			console.log(`listen on port ${PORT}`)
+
+			// try {
+			// 	const res = await axios.post('http://dev.fanil.ru:5211/api/order', {"hash":"0xb0cb76dad9c584fef02f6c7b84bc88549a383616cce69872e864fc6093778d63","amount":"14","price":1100,"period":1668153610000,"orderData":{"volume":3636,"underlying_price":1240.08,"underlying_index":"ETH-11NOV22","quote_currency":"ETH","price_change":3800,"open_interest":4138,"mid_price":0.01975,"mark_price":0.020135,"low":0.0005,"last":0.0195,"interest_rate":0,"instrument_name":"ETH-11NOV22-1100-P","high":0.0195,"estimated_delivery_price":1241.09,"creation_timestamp":1667985120791,"bid_price":0.0195,"base_currency":"ETH","ask_price":0.02,"recieve":237.17229899999998,"amount":14,"price":1100,"period":1668153610000},"address":"0x302880A673b325bCA324CE3815a7dFC34D4cc6d6","direction":"buy"}, {
+			// 		headers: {
+			// 		  'Accept':'application/json',
+			// 		  'Content-Type': 'application/json',
+			// 		  'Direction-Type': 'buy',
+			// 		  'Session-Token': '0490ee498ada705deb363a8946c78f37ffcaba341135179f655d5ac735a97d02',
+			// 		  'User-Address': '0x302880A673b325bCA324CE3815a7dFC34D4cc6d6'
+			// 		},
+					
+			// 	  })
+			// 	console.log(res)
+			// } catch(e) {
+			// 	console.log(e)
+			// }
 
 			// ! auto payment complete
 			setInterval(async () => {
@@ -80,7 +96,8 @@ db.connection
 								[db.Op.and]: [
 									{ execute_date: { [db.Op.lte]: new Date() } },
 									{ order_complete: false },
-									{ status: { [db.Op.notIn]: ['approved', 'denied'] } }
+									{ status: { [db.Op.notIn]: ['approved', 'denied'] } },
+									{ autopay: false }
 								]
 							}
 						}
@@ -129,8 +146,7 @@ db.connection
 								}
 							}
 						} catch (e) {
-							await updateLog(logId, { status: 'failed', error: JSON.stringify(e.response.data) })
-							console.log(e.response.data)
+							await updateLog(logId, { status: 'failed', error: parseError(e) })
 						}
 					})
 				} catch (e) {

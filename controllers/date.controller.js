@@ -23,7 +23,6 @@ class DateContoller {
           res.json(fillteredDate);
         })
         .catch((err) => {
-          console.log(err)
           updateLog(logId, { status: 'failed', error: JSON.stringify(err) })
           res.json({ success: false, data: null, error: e.message, sessionInfo })
         });
