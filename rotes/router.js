@@ -1,30 +1,33 @@
-const Router = require('express')
-const router = new Router()
-const priceContoller = require('../controllers/price.controller')
-const dateContoller = require('../controllers/date.controller')
-const orderContoller = require('../controllers/order.controller')
-const periodContoller = require('../controllers/period.controller')
-const strikeContoller = require('../controllers/strike.controller')
-const adminPanel = require('../controllers/adminPanel.controller')
-const sessionController = require('../controllers/session.controller')
+const Router = require('express');
+const router = new Router();
+const priceController = require('../controllers/price.controller');
+const dateController = require('../controllers/date.controller');
+const orderController = require('../controllers/order.controller');
+const periodController = require('../controllers/period.controller');
+const strikeController = require('../controllers/strike.controller');
+const adminPanel = require('../controllers/adminPanel.controller');
+const sessionController = require('../controllers/session.controller');
+const supportController = require('../controllers/support.controller');
 
-router.get('/dates', dateContoller.getDates)
+router.get('/dates', dateController.getDates);
 
-router.get('/user_orders', orderContoller.getUserOrders)
-router.get('/order', orderContoller.getOrder)
-router.post('/order', orderContoller.postOrder)
+router.get('/user_orders', orderController.getUserOrders);
+router.get('/order', orderController.getOrder);
+router.post('/order', orderController.postOrder);
 
-router.get('/periods', periodContoller.getPeriods)
-router.get('/periods_price', periodContoller.getPricePeriods)
+router.get('/periods', periodController.getPeriods);
+router.get('/periods_price', periodController.getPricePeriods);
 
-router.get('/price', priceContoller.getCurrentPrice)
-router.get('/prices/sell', priceContoller.getSellPrices)
-router.get('/prices/buy', priceContoller.getBuyPrices)
+router.get('/price', priceController.getCurrentPrice);
+router.get('/prices/sell', priceController.getSellPrices);
+router.get('/prices/buy', priceController.getBuyPrices);
 
-router.get('/strikes', strikeContoller.getStrikes)
+router.get('/strikes', strikeController.getStrikes);
 
-router.get('/session', sessionController.create)
+router.get('/session', sessionController.create);
 
-router.post('/login', adminPanel.login)
+router.post('/login', adminPanel.login);
 
-module.exports = router
+router.post('/support', supportController.postSupport);
+
+module.exports = router;
