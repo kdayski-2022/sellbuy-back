@@ -16,6 +16,8 @@ const crud = require('./lib/express-crud');
 const { smartRound, parseError } = require('./lib/lib');
 const { writeLog, updateLog, destroyLog } = require('./lib/logger');
 
+const { Socket } = require('./socket');
+
 dotenv.config();
 
 const infuraRpc = process.env.INFURA_RPC;
@@ -37,28 +39,10 @@ app.crud('/api/log_crud', model.Log);
 db.connection
   .sync({ alter: true })
   .then(async () => {
+    new Socket();
+
     app.listen(PORT, async () => {
       console.log(`listen on port ${PORT}`);
-
-      // try {
-      //   const res = await axios.post(
-      //     'http://dev.fanil.ru:5211/api/support',
-      //     { email: 'npoqpu2010@mail.ru', message: 'test message' },
-      //     {
-      //       headers: {
-      //         Accept: 'application/json',
-      //         'Content-Type': 'application/json',
-      //         'Direction-Type': 'buy',
-      //         'Session-Token':
-      //           '0490ee498ada705deb363a8946c78f37ffcaba341135179f655d5ac735a97d02',
-      //         'User-Address': '0x05528440b9e0323D7CCb9Baf88b411CE481694a0',
-      //       },
-      //     }
-      //   );
-      //   console.log(res);
-      // } catch (e) {
-      //   console.log(e);
-      // }
 
       // ! auto payment complete
       setInterval(async () => {

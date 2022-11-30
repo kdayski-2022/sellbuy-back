@@ -1,0 +1,457 @@
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+events.js:352
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (net.js:1320:16)
+    at listenInCluster (net.js:1368:12)
+    at Server.listen (net.js:1454:7)
+    at /srv/sellbuy-back/socket.js:48:12
+    at processTicksAndRejections (internal/process/task_queues.js:95:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (net.js:1347:8)
+    at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+/srv/sellbuy-back/delete_me.sh: line 1: 17119 Terminated              DOTENV_CONFIG_PATH=.env.dev node -r dotenv/config socket.js

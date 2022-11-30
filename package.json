@@ -36,6 +36,7 @@
     "object-hash": "^3.0.0",
     "pg": "^8.7.3",
     "sequelize": "^6.21.2",
+    "socket.io": "^4.5.4",
     "telegraf": "^4.8.6",
     "web3": "^1.7.4"
   },

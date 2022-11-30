@@ -1,8 +1,7 @@
 const DataTypes = require('sequelize');
 
 module.exports = {
-  email: DataTypes.STRING,
-  message: DataTypes.TEXT,
+  sessionToken: DataTypes.STRING,
+  messages: DataTypes.TEXT,
   address: DataTypes.STRING,
-  direction: DataTypes.STRING,
 };
