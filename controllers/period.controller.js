@@ -24,20 +24,20 @@ class PeriodController {
     try {
       const periods = [
         {
-          title: '1 day',
-          timestamp: getFutureTimestamp(TOMORROW),
+          title: `${getDaysDifference(getFutureTimestamp(1))} days`,
+          timestamp: getFutureTimestamp(1),
         },
         {
-          title: `${getDaysDifference(getFutureTimestamp(WEEK))} days`,
-          timestamp: getFutureTimestamp(WEEK),
+          title: `${getDaysDifference(getFutureTimestamp(2))} days`,
+          timestamp: getFutureTimestamp(2),
         },
         {
-          title: `${getDaysDifference(getFutureTimestamp(TWO_WEEK))} days`,
-          timestamp: getFutureTimestamp(TWO_WEEK),
+          title: `${getDaysDifference(getFutureTimestamp(3))} days`,
+          timestamp: getFutureTimestamp(3),
         },
         {
-          title: `${getDaysDifference(getFutureTimestamp(MONTH))} days`,
-          timestamp: getFutureTimestamp(MONTH),
+          title: `${getDaysDifference(getFutureTimestamp(4))} days`,
+          timestamp: getFutureTimestamp(4),
         },
       ];
       updateLog(logId, { status: 'success' });
@@ -66,20 +66,20 @@ class PeriodController {
           const direction = req.headers['direction-type'];
           const periods = [
             {
-              title: '1 day',
-              timestamp: getFutureTimestamp(TOMORROW),
+              title: `${getDaysDifference(getFutureTimestamp(1))} days`,
+              timestamp: getFutureTimestamp(1),
             },
             {
-              title: `${getDaysDifference(getFutureTimestamp(WEEK))} days`,
-              timestamp: getFutureTimestamp(WEEK),
+              title: `${getDaysDifference(getFutureTimestamp(2))} days`,
+              timestamp: getFutureTimestamp(2),
             },
             {
-              title: `${getDaysDifference(getFutureTimestamp(TWO_WEEK))} days`,
-              timestamp: getFutureTimestamp(TWO_WEEK),
+              title: `${getDaysDifference(getFutureTimestamp(3))} days`,
+              timestamp: getFutureTimestamp(3),
             },
             {
-              title: `${getDaysDifference(getFutureTimestamp(MONTH))} days`,
-              timestamp: getFutureTimestamp(MONTH),
+              title: `${getDaysDifference(getFutureTimestamp(4))} days`,
+              timestamp: getFutureTimestamp(4),
             },
           ];
           const result = [];

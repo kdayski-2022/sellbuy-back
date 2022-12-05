@@ -67,9 +67,9 @@ class OrderController {
           // Bid price is not stable
 
           // ! ONLY FOR DEV
-          // const bidPriceAvailable = fillteredDates.map(
-          // 	(item) => item.bid_price ? item : {...item, bid_price: Math.random() / 10}
-          //   );
+          // const bidPriceAvailable = fillteredDates.map((item) =>
+          //   item.bid_price ? item : { ...item, bid_price: Math.random() / 10 }
+          // );
 
           const bidPriceAvailable = fillteredDates.filter(
             (item) => item.bid_price
