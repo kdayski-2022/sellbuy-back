@@ -4,14 +4,20 @@ const {
   getValidDays,
   getTimestamp,
 } = require('../lib/dates');
-const { TOMORROW, WEEK, TWO_WEEK, MONTH } = require('../config/constants.json');
 const axios = require('axios');
 const dotenv = require('dotenv');
 const { writeLog, updateLog } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
 const { parseError } = require('../lib/lib');
+const Web3 = require('web3');
+const ERC20Abi = require('../abi/ERC20.json');
+const Transfer = require('../lib/transfer');
 dotenv.config();
 const apiUrl = process.env.API_URL;
+const infuraRpc = process.env.INFURA_RPC;
+const SERVICE_WALLET_ADDRESS = process.env.SERVICE_WALLET_ADDRESS;
+const WITHDRAWAL_TOKEN_ADDRESS = process.env.WITHDRAWAL_TOKEN_ADDRESS;
+
 class PeriodController {
   async getPeriods(req, res) {
     const sessionInfo = await checkSession(req);
@@ -60,7 +66,7 @@ class PeriodController {
       .get(
         `${apiUrl}/public/get_book_summary_by_currency?currency=ETH&kind=option`
       )
-      .then((apiRes) => {
+      .then(async (apiRes) => {
         try {
           const { price, amount } = req.query;
           const direction = req.headers['direction-type'];
@@ -83,95 +89,100 @@ class PeriodController {
             },
           ];
           const result = [];
-
-          periods.forEach(({ title, timestamp }) => {
-            if (title === '1 days') return;
-            const filteredTypes = apiRes.data.result.filter((item) => {
-              const typesArray = item.instrument_name.split('-');
-              const type = typesArray[typesArray.length - 1];
-              return direction === 'sell' ? type === 'C' : type === 'P';
-            });
-
-            const fillteredPrices = filteredTypes.filter((item) => {
-              const priceArray = item.instrument_name.split('-');
-              const instrument_price = priceArray[priceArray.length - 2];
-              return instrument_price === price;
-            });
-
-            const fillteredDates = fillteredPrices.filter((item) => {
-              const [_, stortedDataUnderlying_index] =
-                item.underlying_index.split('-');
-              const targetPeriod = Date.parse(stortedDataUnderlying_index);
-              const daysDifference = getDaysDifference(timestamp);
-              const validDays = getValidDays(daysDifference, targetPeriod);
-              const choosenDay = new Date(Number(timestamp)).getDate();
-              const choosenMonth = new Date(Number(timestamp)).getMonth();
-              const targetMonth = new Date(
-                getTimestamp(targetPeriod)
-              ).getMonth();
-              if (
-                validDays.includes(choosenDay) &&
-                choosenMonth === targetMonth
-              )
-                return item;
-            });
-
-            // ! ONLY FOR DEV
-            // const bidPriceAvailable = fillteredDates.map(
-            // 	(item) => item.bid_price ? item : {...item, bid_price: Math.random() / 10}
-            //   );
-
-            const bidPriceAvailable = fillteredDates.filter(
-              (item) => item.bid_price
-            );
-
-            if (!bidPriceAvailable.length)
-              return result.push({
-                title,
-                timestamp,
-                recieve: null,
-                percent: null,
-                error: "Order wasn't found",
+          const transfer = new Transfer();
+          await transfer.init();
+          await Promise.all(
+            periods.map(async ({ title, timestamp }) => {
+              if (title === '1 days') return;
+              const filteredTypes = apiRes.data.result.filter((item) => {
+                const typesArray = item.instrument_name.split('-');
+                const type = typesArray[typesArray.length - 1];
+                return direction === 'sell' ? type === 'C' : type === 'P';
               });
 
-            const maxBidPriceObj = bidPriceAvailable
-              .sort((a, b) =>
-                a.bid_price > b.bid_price
-                  ? 1
-                  : b.bid_price > a.bid_price
-                  ? -1
-                  : 0
-              )
-              .reverse()[0];
-            const { estimated_delivery_price, bid_price } = maxBidPriceObj;
-            const recieve = estimated_delivery_price * bid_price * amount * 0.7;
-            const recieveForEach =
-              estimated_delivery_price * bid_price * 1 * 0.7;
-            const percentForEach = (recieveForEach / price) * 100;
-            const percent = (recieve / price) * 100;
-            const days = getDaysDifference(timestamp);
-            const apr =
-              Math.round(parseFloat((percentForEach / days) * 365) * 100) / 100;
-            if (!Math.floor(recieve))
-              return result.push({
+              const fillteredPrices = filteredTypes.filter((item) => {
+                const priceArray = item.instrument_name.split('-');
+                const instrument_price = priceArray[priceArray.length - 2];
+                return instrument_price === price;
+              });
+
+              const fillteredDates = fillteredPrices.filter((item) => {
+                const [_, stortedDataUnderlying_index] =
+                  item.underlying_index.split('-');
+                const targetPeriod = Date.parse(stortedDataUnderlying_index);
+                const daysDifference = getDaysDifference(timestamp);
+                const validDays = getValidDays(daysDifference, targetPeriod);
+                const choosenDay = new Date(Number(timestamp)).getDate();
+                const choosenMonth = new Date(Number(timestamp)).getMonth();
+                const targetMonth = new Date(
+                  getTimestamp(targetPeriod)
+                ).getMonth();
+                if (
+                  validDays.includes(choosenDay) &&
+                  choosenMonth === targetMonth
+                )
+                  return item;
+              });
+
+              // ! ONLY FOR DEV
+              // const bidPriceAvailable = fillteredDates.map(
+              // 	(item) => item.bid_price ? item : {...item, bid_price: Math.random() / 10}
+              //   );
+
+              const bidPriceAvailable = fillteredDates.filter(
+                (item) => item.bid_price
+              );
+
+              if (!bidPriceAvailable.length)
+                return result.push({
+                  title,
+                  timestamp,
+                  recieve: null,
+                  percent: null,
+                  error: "Order wasn't found",
+                });
+
+              const maxBidPriceObj = bidPriceAvailable
+                .sort((a, b) =>
+                  a.bid_price > b.bid_price
+                    ? 1
+                    : b.bid_price > a.bid_price
+                    ? -1
+                    : 0
+                )
+                .reverse()[0];
+              const { estimated_delivery_price, bid_price } = maxBidPriceObj;
+              const recieve =
+                estimated_delivery_price * bid_price * amount * 0.7;
+              const recieveForEach =
+                estimated_delivery_price * bid_price * 1 * 0.7;
+              const percentForEach = (recieveForEach / price) * 100;
+              const percent = (recieve / price) * 100;
+              const days = getDaysDifference(timestamp);
+              const apr =
+                Math.round(parseFloat((percentForEach / days) * 365) * 100) /
+                100;
+              if (!Math.floor(recieve))
+                return result.push({
+                  title,
+                  timestamp,
+                  recieve: null,
+                  percent: null,
+                  error: "Order wasn't found",
+                });
+              result.push({
                 title,
                 timestamp,
-                recieve: null,
-                percent: null,
-                error: "Order wasn't found",
+                recieve,
+                percent,
+                apr,
+                days,
+                price,
+                amount,
+                error: null,
               });
-            result.push({
-              title,
-              timestamp,
-              recieve,
-              percent,
-              apr,
-              days,
-              price,
-              amount,
-              error: null,
-            });
-          });
+            })
+          );
 
           updateLog(logId, { status: 'success' });
           res.json({ success: true, data: { periods: result }, sessionInfo });
