@@ -48,14 +48,16 @@ function Socket() {
     });
 
     socket.on(OPEN_CHAT, async () => {
-      const { userAddress } = await db.models.UserSession.findOne({
+      const userSession = await db.models.UserSession.findOne({
         where: { sessionToken },
       });
-      const opts = { userAddress, sessionToken };
+      if (userSession) {
+        const { userAddress } = userSession;
+        const opts = { userAddress, sessionToken };
 
-      chat = await getChatBySessionToken(sessionToken);
-      chat = await readChat(chat, opts);
-
+        chat = await getChatBySessionToken(sessionToken);
+        chat = await readChat(chat, opts);
+      }
       io.in(sessionToken).emit(
         OPEN_CHAT,
         chat ? JSON.parse(chat.messages) : []

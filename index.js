@@ -40,7 +40,10 @@ db.connection
   .sync({ alter: true })
   .then(async () => {
     new Socket();
-
+    //! если запущено 2 бека, при подтверждении дубликата проверять исполнена ли уже транзакция
+    // const interval = setInterval(() => {
+    // if (new Date().getTime() > 1671443978862 + 80000) {
+    // clearInterval(interval);
     app.listen(PORT, async () => {
       console.log(`listen on port ${PORT}`);
 
@@ -100,17 +103,6 @@ db.connection
                 ? JSON.parse(order.order)
                 : null;
               if (orderDetails && order.order_id) {
-                get_order.params.order_id = order.order_id;
-                const { data } = await axios.post(apiUrl, get_order, {
-                  headers: { Authorization: `Bearer ${accessToken}` },
-                });
-                const orderFrashData = data?.result.length
-                  ? data?.result[0]
-                  : {};
-                const executed =
-                  orderFrashData.state === 'filled' ||
-                  orderFrashData.order_state === 'filled';
-                if (executed) {
                   if (order.status !== 'pending_approve') {
                     const indexPriceData = await axios.post(
                       apiUrl,
@@ -183,7 +175,6 @@ db.connection
                     );
                     return;
                   }
-                }
               }
             } catch (e) {
               await updateLog(logId, {
@@ -197,5 +188,7 @@ db.connection
         }
       }, 10000);
     });
+    // }
+    // }, 10);
   })
   .catch((e) => console.log(e));
