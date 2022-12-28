@@ -3,6 +3,7 @@ const router = new Router();
 const priceController = require('../controllers/price.controller');
 const dateController = require('../controllers/date.controller');
 const orderController = require('../controllers/order.controller');
+const orderAttemptController = require('../controllers/orderAttempt.controller');
 const periodController = require('../controllers/period.controller');
 const strikeController = require('../controllers/strike.controller');
 const adminPanel = require('../controllers/adminPanel.controller');
@@ -14,6 +15,9 @@ router.get('/dates', dateController.getDates);
 router.get('/user_orders', orderController.getUserOrders);
 router.get('/order', orderController.getOrder);
 router.post('/order', orderController.postOrder);
+
+router.post('/order_state/save', orderAttemptController.postOrderAttempt);
+router.post('/order_state/update', orderAttemptController.updateOrderAttempt);
 
 router.get('/periods', periodController.getPeriods);
 router.get('/periods_price', periodController.getPricePeriods);

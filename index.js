@@ -17,6 +17,8 @@ const { smartRound, parseError } = require('./lib/lib');
 const { writeLog, updateLog, destroyLog } = require('./lib/logger');
 
 const { Socket } = require('./socket');
+const { postOrder } = require('./lib/order');
+const { checkState } = require('./lib/state');
 
 dotenv.config();
 
@@ -40,6 +42,7 @@ db.connection
   .sync({ alter: true })
   .then(async () => {
     new Socket();
+
     //! если запущено 2 бека, при подтверждении дубликата проверять исполнена ли уже транзакция
     // const interval = setInterval(() => {
     // if (new Date().getTime() > 1671443978862 + 80000) {
@@ -47,7 +50,85 @@ db.connection
     app.listen(PORT, async () => {
       console.log(`listen on port ${PORT}`);
 
-      // ! auto payment complete
+      // ! auto order attempt payment status
+      setInterval(async () => {
+        try {
+          const orderAttempts = await db.models.OrderAttempt.findAll({
+            where: {
+              [db.Op.and]: [
+                { payment_complete: false },
+                { order_published: false },
+                {
+                  hash: {
+                    [db.Op.ne]: null,
+                  },
+                },
+                {
+                  error: {
+                    [db.Op.is]: null,
+                  },
+                },
+              ],
+            },
+          });
+
+          orderAttempts.forEach(async ({ id, ...data }) => {
+            if (data && data.hash) {
+              const state = await checkState({
+                ...data,
+                id,
+              });
+              await db.models.OrderAttempt.update(
+                {
+                  ...state,
+                },
+                { where: { id } }
+              );
+            }
+          });
+        } catch (e) {
+          console.log(e);
+        }
+      }, 10000);
+
+      // ! auto order attempt order post
+      setInterval(async () => {
+        try {
+          const orderAttempts = await db.models.OrderAttempt.findAll({
+            where: {
+              [db.Op.and]: [
+                { payment_complete: true },
+                { order_published: false },
+                {
+                  order_id: {
+                    [db.Op.is]: null,
+                  },
+                },
+                {
+                  error: {
+                    [db.Op.is]: null,
+                  },
+                },
+              ],
+            },
+          });
+
+          orderAttempts.forEach(async ({ id, ...data }) => {
+            if (data && data.instrument_name) {
+              const { order_id, error } = await postOrder(data);
+              const state = await checkState({ ...data, id, order_id, error });
+              await db.models.OrderAttempt.update(
+                { ...state, order_id, error },
+                { where: { id } }
+              );
+            }
+          });
+        } catch (e) {
+          console.log(e);
+        }
+      }, 10000);
+
+      // ! auto order payment complete
       setInterval(async () => {
         try {
           const orders = await db.models.Order.findAll({
@@ -103,78 +184,78 @@ db.connection
                 ? JSON.parse(order.order)
                 : null;
               if (orderDetails && order.order_id) {
-                  if (order.status !== 'pending_approve') {
-                    const indexPriceData = await axios.post(
-                      apiUrl,
-                      get_index_price
-                    );
-                    await db.models.Order.update(
-                      {
-                        status: 'pending_approve',
-                        end_index_price:
-                          indexPriceData?.data?.result?.index_price,
-                      },
-                      { where: { order_id: order.order_id } }
-                    );
-                    const orderUpdated = await db.models.Order.findOne({
-                      attributes: { exclude: ['perpetual'] },
-                      where: { order_id: order.order_id },
-                    });
+                if (order.status !== 'pending_approve') {
+                  const indexPriceData = await axios.post(
+                    apiUrl,
+                    get_index_price
+                  );
+                  await db.models.Order.update(
+                    {
+                      status: 'pending_approve',
+                      end_index_price:
+                        indexPriceData?.data?.result?.index_price,
+                    },
+                    { where: { order_id: order.order_id } }
+                  );
+                  const orderUpdated = await db.models.Order.findOne({
+                    attributes: { exclude: ['perpetual'] },
+                    where: { order_id: order.order_id },
+                  });
 
-                    let recieve;
-                    if (order.direction === 'sell') {
-                      if (
-                        orderUpdated.end_index_price >=
-                        orderUpdated.target_index_price
-                      ) {
-                        recieve = `${
-                          parseFloat(orderUpdated.price) *
-                            parseFloat(orderUpdated.amount) +
-                          parseFloat(orderUpdated.recieve)
-                        } USDC`;
-                      } else {
-                        const BN = web3.utils.BN;
-                        const valueWei = await web3.utils.toWei(
-                          String(
-                            parseFloat(orderUpdated.amount) +
-                              parseFloat(orderUpdated.recieve) /
-                                parseFloat(orderUpdated.end_index_price)
-                          ),
-                          'ether'
-                        );
-                        recieve = `${Number(
-                          web3.utils.fromWei(new BN(valueWei))
-                        )} ETH`;
-                      }
+                  let recieve;
+                  if (order.direction === 'sell') {
+                    if (
+                      orderUpdated.end_index_price >=
+                      orderUpdated.target_index_price
+                    ) {
+                      recieve = `${
+                        parseFloat(orderUpdated.price) *
+                          parseFloat(orderUpdated.amount) +
+                        parseFloat(orderUpdated.recieve)
+                      } USDC`;
                     } else {
-                      if (
-                        orderUpdated.end_index_price <=
-                        orderUpdated.target_index_price
-                      ) {
-                        recieve = `${
-                          smartRound(
+                      const BN = web3.utils.BN;
+                      const valueWei = await web3.utils.toWei(
+                        String(
+                          parseFloat(orderUpdated.amount) +
                             parseFloat(orderUpdated.recieve) /
                               parseFloat(orderUpdated.end_index_price)
-                          ) + orderUpdated.amount
-                        } ETH`;
-                      } else {
-                        recieve = `${
-                          parseFloat(orderUpdated.price) *
-                            parseFloat(orderUpdated.amount) +
-                          parseFloat(orderUpdated.recieve)
-                        } USDC`;
-                      }
+                        ),
+                        'ether'
+                      );
+                      recieve = `${Number(
+                        web3.utils.fromWei(new BN(valueWei))
+                      )} ETH`;
                     }
-                    telegram.sendApprove(
-                      `Confirm the payment which you're about to make.\n${
-                        orderUpdated.from
-                      } will recieve ${recieve}\n\n${JSON.stringify(
-                        orderUpdated
-                      )}`,
-                      orderUpdated
-                    );
-                    return;
+                  } else {
+                    if (
+                      orderUpdated.end_index_price <=
+                      orderUpdated.target_index_price
+                    ) {
+                      recieve = `${
+                        smartRound(
+                          parseFloat(orderUpdated.recieve) /
+                            parseFloat(orderUpdated.end_index_price)
+                        ) + orderUpdated.amount
+                      } ETH`;
+                    } else {
+                      recieve = `${
+                        parseFloat(orderUpdated.price) *
+                          parseFloat(orderUpdated.amount) +
+                        parseFloat(orderUpdated.recieve)
+                      } USDC`;
+                    }
                   }
+                  telegram.sendApprove(
+                    `Confirm the payment which you're about to make.\n${
+                      orderUpdated.from
+                    } will recieve ${recieve}\n\n${JSON.stringify(
+                      orderUpdated
+                    )}`,
+                    orderUpdated
+                  );
+                  return;
+                }
               }
             } catch (e) {
               await updateLog(logId, {

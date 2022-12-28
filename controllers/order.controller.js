@@ -6,7 +6,6 @@ const {
   buy_data,
   sell_data,
   get_index_price,
-  perpetual_data,
 } = require('../config/requestData.json');
 const {
   getDaysDifference,
@@ -45,13 +44,13 @@ class OrderController {
             return direction === 'sell' ? type === 'C' : type === 'P';
           });
 
-          const fillteredPrices = filteredTypes.filter((item) => {
+          const filteredPrices = filteredTypes.filter((item) => {
             const priceArray = item.instrument_name.split('-');
             const instrument_price = priceArray[priceArray.length - 2];
             return instrument_price === price;
           });
 
-          const fillteredDates = fillteredPrices.filter((item) => {
+          const fillteredDates = filteredPrices.filter((item) => {
             const [_, stortedDataUnderlying_index] =
               item.underlying_index.split('-');
             const targetPeriod = Date.parse(stortedDataUnderlying_index);
@@ -126,7 +125,6 @@ class OrderController {
     postData.params.amount = Number(amount);
 
     try {
-      // add balance
       direction === 'sell'
         ? telegram.send(`User ${address} deposited ${amount} ETH`)
         : telegram.send(
@@ -161,14 +159,6 @@ class OrderController {
         });
 
         const indexPriceData = await axios.post(apiUrl, get_index_price);
-
-        // let perpetual
-        // if (direction === 'buy') {
-        // 	const perperualData = perpetual_data
-        // 	perperualData.params.amount = Math.ceil(parseFloat(amount) * parseFloat(price) + parseFloat(recieve))
-        // 	perpetual = await axios.post(apiUrl, perperualData, { headers: {'Authorization': `Bearer ${accessToken}`} })
-        // 	perpetual = JSON.stringify(perpetual.data)
-        // }
 
         const order_id =
           data && data.result && data.result.order && data.result.order.order_id
@@ -206,7 +196,7 @@ class OrderController {
         });
         res.json({
           success: true,
-          data: { orders },
+          data: { orders, order_id },
           message: 'Order was made',
           sessionInfo,
         });
@@ -251,7 +241,12 @@ class OrderController {
 
     try {
       const orders = await db.models.Order.findAll({
-        where: { from: userAddress.toLowerCase() },
+        where: {
+          from: userAddress.toLowerCase(),
+          status: {
+            [db.Op.ne]: 'pending',
+          },
+        },
       });
       updateLog(logId, { status: 'success' });
       res.json({ success: true, data: orders, sessionInfo });
