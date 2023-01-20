@@ -8,8 +8,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const db = require('./database');
 const model = require('./lib/modelWrapper')(db.models);
-const { getAccessToken } = require('./lib/auth');
-const { get_order, get_index_price } = require('./config/requestData.json');
+const { get_index_price } = require('./config/requestData.json');
 const Transfer = require('./lib/transfer');
 const Web3 = require('web3');
 const crud = require('./lib/express-crud');
@@ -17,7 +16,7 @@ const { smartRound, parseError } = require('./lib/lib');
 const { writeLog, updateLog, destroyLog } = require('./lib/logger');
 
 const { Socket } = require('./socket');
-const { postOrder } = require('./lib/order');
+const { postOrder, approve } = require('./lib/order');
 const { checkState } = require('./lib/state');
 
 dotenv.config();
@@ -161,15 +160,12 @@ db.connection
       // ! auto order complete
       setInterval(async () => {
         try {
-          const accessToken = await getAccessToken();
-
           let orders = await db.models.Order.findAll({
             where: {
               [db.Op.and]: [
                 { execute_date: { [db.Op.lte]: new Date() } },
                 { order_complete: false },
                 { status: { [db.Op.notIn]: ['approved', 'denied'] } },
-                // { autopay: false }
               ],
             },
           });
@@ -183,25 +179,48 @@ db.connection
               const orderDetails = JSON.parse(order.order)
                 ? JSON.parse(order.order)
                 : null;
-              if (orderDetails && order.order_id) {
-                if (order.status !== 'pending_approve') {
-                  const indexPriceData = await axios.post(
-                    apiUrl,
-                    get_index_price
-                  );
-                  await db.models.Order.update(
-                    {
-                      status: 'pending_approve',
-                      end_index_price:
-                        indexPriceData?.data?.result?.index_price,
-                    },
-                    { where: { order_id: order.order_id } }
-                  );
-                  const orderUpdated = await db.models.Order.findOne({
-                    attributes: { exclude: ['perpetual'] },
-                    where: { order_id: order.order_id },
-                  });
+              if (
+                orderDetails &&
+                order.order_id &&
+                order.status !== 'pending_approve'
+              ) {
+                const indexPriceData = await axios.post(
+                  apiUrl,
+                  get_index_price
+                );
+                await db.models.Order.update(
+                  {
+                    status: 'pending_approve',
+                    end_index_price: indexPriceData?.data?.result?.index_price,
+                  },
+                  { where: { order_id: order.order_id } }
+                );
+                const orderUpdated = await db.models.Order.findOne({
+                  attributes: { exclude: ['perpetual'] },
+                  where: { order_id: order.order_id },
+                });
 
+                if (orderUpdated.autopay) {
+                  const order_id = orderUpdated.order_id;
+                  const { status, message } = await approve(order_id);
+                  console.log({ status, message });
+                  if (status === 'success') {
+                    telegram.send(
+                      `Autopayment successfully completed\n${message}`
+                    );
+                    await updateLog(logId, { status });
+                  } else {
+                    telegram.send(
+                      `Autopayment completed with error\n${message}`
+                    );
+                    console.log(message);
+                    await updateLog(logId, {
+                      status,
+                      error: JSON.stringify(message),
+                    });
+                  }
+                }
+                if (!orderUpdated.autopay) {
                   let recieve;
                   if (order.direction === 'sell') {
                     if (

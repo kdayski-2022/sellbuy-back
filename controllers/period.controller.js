@@ -91,45 +91,48 @@ class PeriodController {
           const result = [];
           const transfer = new Transfer();
           await transfer.init();
+
+          const filteredTypes = apiRes.data.result.filter((item) => {
+            const typesArray = item.instrument_name.split('-');
+            const type = typesArray[typesArray.length - 1];
+            return direction === 'sell' ? type === 'C' : type === 'P';
+          });
+
+          const filteredPrices = filteredTypes.filter((item) => {
+            const priceArray = item.instrument_name.split('-');
+            const instrument_price = priceArray[priceArray.length - 2];
+            return instrument_price === price;
+          });
+
           await Promise.all(
             periods.map(async ({ title, timestamp }) => {
               if (title === '1 days') return;
-              const filteredTypes = apiRes.data.result.filter((item) => {
-                const typesArray = item.instrument_name.split('-');
-                const type = typesArray[typesArray.length - 1];
-                return direction === 'sell' ? type === 'C' : type === 'P';
-              });
-
-              const fillteredPrices = filteredTypes.filter((item) => {
-                const priceArray = item.instrument_name.split('-');
-                const instrument_price = priceArray[priceArray.length - 2];
-                return instrument_price === price;
-              });
-
-              const fillteredDates = fillteredPrices.filter((item) => {
-                const [_, stortedDataUnderlying_index] =
+              const filteredDates = filteredPrices.filter((item) => {
+                const [_, sortedDataUnderlying_index] =
                   item.underlying_index.split('-');
-                const targetPeriod = Date.parse(stortedDataUnderlying_index);
+
+                const targetPeriod = Date.parse(sortedDataUnderlying_index);
                 const daysDifference = getDaysDifference(timestamp);
                 const validDays = getValidDays(daysDifference, targetPeriod);
-                const choosenDay = new Date(Number(timestamp)).getDate();
-                const choosenMonth = new Date(Number(timestamp)).getMonth();
+                const chosenDay = new Date(Number(timestamp)).getDate();
+                const chosenMonth = new Date(Number(timestamp)).getMonth();
                 const targetMonth = new Date(
                   getTimestamp(targetPeriod)
                 ).getMonth();
                 if (
-                  validDays.includes(choosenDay) &&
-                  choosenMonth === targetMonth
-                )
+                  validDays.includes(chosenDay) &&
+                  chosenMonth === targetMonth
+                ) {
                   return item;
+                }
               });
 
               // ! ONLY FOR DEV
-              // const bidPriceAvailable = fillteredDates.map(
+              // const bidPriceAvailable = filteredDates.map(
               // 	(item) => item.bid_price ? item : {...item, bid_price: Math.random() / 10}
               //   );
 
-              const bidPriceAvailable = fillteredDates.filter(
+              const bidPriceAvailable = filteredDates.filter(
                 (item) => item.bid_price
               );
 

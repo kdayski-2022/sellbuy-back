@@ -15,6 +15,7 @@ router.get('/dates', dateController.getDates);
 router.get('/user_orders', orderController.getUserOrders);
 router.get('/order', orderController.getOrder);
 router.post('/order', orderController.postOrder);
+router.put('/order_crud/:id', orderController.updateOrder);
 
 router.post('/order_state/save', orderAttemptController.postOrderAttempt);
 router.post('/order_state/update', orderAttemptController.updateOrderAttempt);

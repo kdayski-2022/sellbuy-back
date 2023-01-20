@@ -229,6 +229,37 @@ class OrderController {
     }
   }
 
+  async updateOrder(req, res) {
+    const sessionInfo = await checkSession(req);
+    const logId = await writeLog({
+      action: 'updateOrder',
+      status: 'in progress',
+      sessionInfo,
+      req,
+    });
+    const order = req.body;
+
+    try {
+      const { id } = order;
+      await db.models.Order.update({ ...order }, { where: { id } });
+      res.json({
+        success: true,
+        data: order,
+        message: 'Order was updated',
+        sessionInfo,
+      });
+      updateLog(logId, { status: 'success' });
+    } catch (e) {
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.json({
+        success: false,
+        data: null,
+        error: parseError(e),
+        sessionInfo,
+      });
+    }
+  }
+
   async getUserOrders(req, res) {
     const sessionInfo = await checkSession(req);
     const logId = await writeLog({
