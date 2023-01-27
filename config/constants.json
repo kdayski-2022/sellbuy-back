@@ -4,5 +4,6 @@
 	"TOMORROW": "Tomorrow",
 	"WEEK": "Week",
 	"TWO_WEEK": "TwoWeek",
-	"MONTH": "Month"
+	"MONTH": "Month",
+	"COMMISSION": 0.3
 }

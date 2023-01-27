@@ -201,12 +201,12 @@ db.connection
                 });
 
                 if (orderUpdated.autopay) {
-                  const order_id = orderUpdated.order_id;
+                  const { order_id, from } = orderUpdated;
                   const { status, message } = await approve(order_id);
                   console.log({ status, message });
                   if (status === 'success') {
                     telegram.send(
-                      `Autopayment successfully completed\n${message}`
+                      `Autopayment successfully completed\n${message}\nto: ${from}\norder id: ${order_id}`
                     );
                     await updateLog(logId, { status });
                   } else {

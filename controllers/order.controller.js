@@ -269,11 +269,13 @@ class OrderController {
       req,
     });
     const { userAddress } = req.query;
+    const direction = req.headers['direction-type'];
 
     try {
       const orders = await db.models.Order.findAll({
         where: {
           from: userAddress.toLowerCase(),
+          direction,
           status: {
             [db.Op.ne]: 'pending',
           },

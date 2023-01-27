@@ -9,6 +9,7 @@ const strikeController = require('../controllers/strike.controller');
 const adminPanel = require('../controllers/adminPanel.controller');
 const sessionController = require('../controllers/session.controller');
 const chatController = require('../controllers/chat.controller');
+const statsController = require('../controllers/stats.controller');
 
 router.get('/dates', dateController.getDates);
 
@@ -33,5 +34,7 @@ router.get('/session', sessionController.create);
 router.get('/chat', chatController.getChat);
 
 router.post('/login', adminPanel.login);
+
+router.get('/stats/income', statsController.getIncome);
 
 module.exports = router;
