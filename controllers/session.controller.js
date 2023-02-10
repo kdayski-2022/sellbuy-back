@@ -60,7 +60,7 @@ const Session = {
       res.json({ success: true, sessionInfo });
     } catch (e) {
       updateLog(logId, { status: 'failed', error: parseError(e) });
-      res.json({ success: false, error: err, sessionInfo });
+      res.json({ success: false, error: parseError(e), sessionInfo });
     }
   },
 };

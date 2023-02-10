@@ -1,5 +1,4 @@
 const express = require('express');
-const axios = require('axios');
 const Telegram = require('./lib/telegram');
 const telegram = new Telegram();
 global.telegram = telegram;
@@ -8,21 +7,21 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const db = require('./database');
 const model = require('./lib/modelWrapper')(db.models);
-const { get_index_price } = require('./config/requestData.json');
 const Transfer = require('./lib/transfer');
 const Web3 = require('web3');
 const crud = require('./lib/express-crud');
-const { smartRound, parseError } = require('./lib/lib');
-const { writeLog, updateLog, destroyLog } = require('./lib/logger');
 
 const { Socket } = require('./socket');
-const { postOrder, approve } = require('./lib/order');
+const { postOrder } = require('./lib/order');
 const { checkState } = require('./lib/state');
+const { listenForPayout } = require('./lib/payoutListener');
+const { destroyLog } = require('./lib/logger');
+const { default: axios } = require('axios');
 
 dotenv.config();
 
 const infuraRpc = process.env.INFURA_RPC;
-const apiUrl = process.env.API_URL;
+const AUTOPAY_INTERVAL = process.env.AUTOPAY_INTERVAL;
 const PORT = process.env.PORT || 8080;
 
 const web3 = new Web3(infuraRpc);
@@ -48,6 +47,61 @@ db.connection
     // clearInterval(interval);
     app.listen(PORT, async () => {
       console.log(`listen on port ${PORT}`);
+
+      //? BEST APR
+      // const request = async (url, direction) => {
+      //   return await axios.get(url, {
+      //     headers: {
+      //       Accept: 'application/json',
+      //       'Content-Type': 'application/json',
+      //       'Direction-Type': direction,
+      //       'Session-Token':
+      //         '5e845ac00f50a16c226b06c519d4205b54ff45ded7fb714b91f7dd5971de60e1',
+      //       'User-Address': '0x05528440b9e0323d7ccb9baf88b411ce481694a0',
+      //     },
+      //   });
+      // };
+
+      // const aprSniff = async (prices, direction) => {
+      //   const result = [];
+      //   for (price of prices) {
+      //     const {
+      //       data: {
+      //         data: { periods },
+      //       },
+      //     } = await request(
+      //       `https://api.dev.sell-high.io/api/periods_price?price=${price}&amount=1`,
+      //       direction
+      //     );
+      //     for (period of periods) {
+      //       if (period.apr) {
+      //         result.push({ ...period, direction });
+      //       }
+      //     }
+      //   }
+      //   return result;
+      // };
+
+      // const buyPrices = await request(
+      //   'https://api.dev.sell-high.io/api/prices/buy',
+      //   'buy'
+      // );
+      // const sellPrices = await request(
+      //   'https://api.dev.sell-high.io/api/prices/sell',
+      //   'sell'
+      // );
+      // const buyAprs = await aprSniff(buyPrices.data.data.prices, 'buy');
+      // const sellAprs = await aprSniff(sellPrices.data.data.prices, 'sell');
+      // const periodsApr = [...buyAprs, ...sellAprs];
+      // const largestApr = periodsApr.reduce(function (prev, current) {
+      //   return prev.apr > current.apr ? prev : current;
+      // });
+      // console.log(largestApr);
+      // const mostProfitOrder = await request(
+      //   `https://api.dev.sell-high.io/api/order?price=${largestApr.price}&period=${largestApr.period}&amount=1`,
+      //   largestApr.direction
+      // );
+      // console.log(mostProfitOrder.data);
 
       // ! auto order attempt payment status
       setInterval(async () => {
@@ -165,128 +219,50 @@ db.connection
               [db.Op.and]: [
                 { execute_date: { [db.Op.lte]: new Date() } },
                 { order_complete: false },
-                { status: { [db.Op.notIn]: ['approved', 'denied'] } },
+                { status: { [db.Op.notIn]: ['approved', 'denied', 'broken'] } },
               ],
             },
           });
 
-          orders.forEach(async (order) => {
-            const logId = await writeLog({
-              action: 'system auto order complete',
-              status: 'in progress',
-            });
-            try {
-              const orderDetails = JSON.parse(order.order)
-                ? JSON.parse(order.order)
-                : null;
-              if (
-                orderDetails &&
-                order.order_id &&
-                order.status !== 'pending_approve'
-              ) {
-                const indexPriceData = await axios.post(
-                  apiUrl,
-                  get_index_price
-                );
-                await db.models.Order.update(
-                  {
-                    status: 'pending_approve',
-                    end_index_price: indexPriceData?.data?.result?.index_price,
-                  },
-                  { where: { order_id: order.order_id } }
-                );
-                const orderUpdated = await db.models.Order.findOne({
-                  attributes: { exclude: ['perpetual'] },
-                  where: { order_id: order.order_id },
-                });
-
-                if (orderUpdated.autopay) {
-                  const { order_id, from } = orderUpdated;
-                  const { status, message } = await approve(order_id);
-                  console.log({ status, message });
-                  if (status === 'success') {
-                    telegram.send(
-                      `Autopayment successfully completed\n${message}\nto: ${from}\norder id: ${order_id}`
-                    );
-                    await updateLog(logId, { status });
-                  } else {
-                    telegram.send(
-                      `Autopayment completed with error\n${message}`
-                    );
-                    console.log(message);
-                    await updateLog(logId, {
-                      status,
-                      error: JSON.stringify(message),
-                    });
-                  }
-                }
-                if (!orderUpdated.autopay) {
-                  let recieve;
-                  if (order.direction === 'sell') {
-                    if (
-                      orderUpdated.end_index_price >=
-                      orderUpdated.target_index_price
-                    ) {
-                      recieve = `${
-                        parseFloat(orderUpdated.price) *
-                          parseFloat(orderUpdated.amount) +
-                        parseFloat(orderUpdated.recieve)
-                      } USDC`;
-                    } else {
-                      const BN = web3.utils.BN;
-                      const valueWei = await web3.utils.toWei(
-                        String(
-                          parseFloat(orderUpdated.amount) +
-                            parseFloat(orderUpdated.recieve) /
-                              parseFloat(orderUpdated.end_index_price)
-                        ),
-                        'ether'
-                      );
-                      recieve = `${Number(
-                        web3.utils.fromWei(new BN(valueWei))
-                      )} ETH`;
-                    }
-                  } else {
-                    if (
-                      orderUpdated.end_index_price <=
-                      orderUpdated.target_index_price
-                    ) {
-                      recieve = `${
-                        smartRound(
-                          parseFloat(orderUpdated.recieve) /
-                            parseFloat(orderUpdated.end_index_price)
-                        ) + orderUpdated.amount
-                      } ETH`;
-                    } else {
-                      recieve = `${
-                        parseFloat(orderUpdated.price) *
-                          parseFloat(orderUpdated.amount) +
-                        parseFloat(orderUpdated.recieve)
-                      } USDC`;
-                    }
-                  }
-                  telegram.sendApprove(
-                    `Confirm the payment which you're about to make.\n${
-                      orderUpdated.from
-                    } will recieve ${recieve}\n\n${JSON.stringify(
-                      orderUpdated
-                    )}`,
-                    orderUpdated
-                  );
-                  return;
-                }
-              }
-            } catch (e) {
-              await updateLog(logId, {
-                status: 'failed',
-                error: parseError(e),
-              });
-            }
-          });
+          for (const order of orders) {
+            await listenForPayout(order);
+          }
         } catch (e) {
           console.log(e);
         }
-      }, 10000);
+      }, AUTOPAY_INTERVAL);
+
+      // ! auto logs and sessions clean
+      setInterval(async () => {
+        try {
+          const monthAgo = new Date(
+            new Date().setMonth(new Date().getMonth() - 1)
+          );
+          const logs = await db.models.Log.findAll({
+            where: {
+              createdAt: {
+                [db.Op.lt]: monthAgo,
+              },
+            },
+          });
+          const sessions = await db.models.UserSession.findAll({
+            where: {
+              createdAt: {
+                [db.Op.lt]: monthAgo,
+              },
+            },
+          });
+
+          for (const log of logs) {
+            await db.models.Log.destroy({ where: { id: log.id } });
+          }
+          for (const session of sessions) {
+            await db.models.UserSession.destroy({ where: { id: session.id } });
+          }
+        } catch (e) {
+          console.log(e);
+        }
+      }, 6000000);
     });
     // }
     // }, 10);
