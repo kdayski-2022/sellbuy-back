@@ -23,5 +23,10 @@ module.exports = {
   payout_tx: DataTypes.STRING,
   direction: DataTypes.STRING,
   perpetual: DataTypes.TEXT,
+  smart_contract: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
   autopay: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
 };

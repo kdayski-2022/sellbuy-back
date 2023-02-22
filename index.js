@@ -8,13 +8,18 @@ const cors = require('cors');
 const db = require('./database');
 const model = require('./lib/modelWrapper')(db.models);
 const Transfer = require('./lib/transfer');
+const Payout = require('./lib/payout');
 const Web3 = require('web3');
 const crud = require('./lib/express-crud');
 
 const { Socket } = require('./socket');
 const { postOrder } = require('./lib/order');
 const { checkState } = require('./lib/state');
-const { listenForPayout } = require('./lib/payoutListener');
+const {
+  listenForPayout,
+  createPayoutData,
+  resetOrders,
+} = require('./lib/payoutListener');
 const { destroyLog } = require('./lib/logger');
 const { default: axios } = require('axios');
 
@@ -26,6 +31,8 @@ const PORT = process.env.PORT || 8080;
 
 const web3 = new Web3(infuraRpc);
 
+const payout = new Payout();
+payout.init();
 const transfer = new Transfer();
 transfer.init();
 const app = express();
@@ -47,7 +54,6 @@ db.connection
     // clearInterval(interval);
     app.listen(PORT, async () => {
       console.log(`listen on port ${PORT}`);
-
       //? BEST APR
       // const request = async (url, direction) => {
       //   return await axios.get(url, {
@@ -210,6 +216,26 @@ db.connection
           console.log(e);
         }
       }, 10000);
+
+      // try {
+      //   await resetOrders();
+      //   let orders = await db.models.Order.findAll({
+      //     where: {
+      //       [db.Op.and]: [
+      //         { execute_date: { [db.Op.lte]: new Date() } },
+      //         { order_complete: false },
+      //         { status: { [db.Op.notIn]: ['approved', 'denied', 'broken'] } },
+      //       ],
+      //     },
+      //   });
+      //   const payoutData = await createPayoutData(orders);
+
+      //   console.log(payoutData)
+      //   // await payout.create(payoutData)
+      //   // telegram.send(payoutData);
+      // } catch (e) {
+      //   console.log(e);
+      // }
 
       // ! auto order complete
       setInterval(async () => {

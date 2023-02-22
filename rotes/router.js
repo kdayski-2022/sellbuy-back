@@ -17,6 +17,8 @@ router.get('/user_orders', orderController.getUserOrders);
 router.get('/order', orderController.getOrder);
 router.post('/order', orderController.postOrder);
 router.put('/order_crud/:id', orderController.updateOrder);
+router.get('/order_crud', orderController.getOrders);
+router.get('/expiration', orderController.getExpiration);
 
 router.post('/order_state/save', orderAttemptController.postOrderAttempt);
 router.post('/order_state/update', orderAttemptController.updateOrderAttempt);
@@ -36,5 +38,8 @@ router.get('/chat', chatController.getChat);
 router.post('/login', adminPanel.login);
 
 router.get('/stats/income', statsController.getIncome);
+
+router.get('/web/statistics', statsController.getWebStatistics);
+router.get('/admin/statistics', statsController.getAdminStatistics);
 
 module.exports = router;

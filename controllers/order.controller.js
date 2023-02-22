@@ -21,6 +21,41 @@ const apiUrl = process.env.API_URL;
 const infuraRpc = process.env.INFURA_RPC;
 
 class OrderController {
+  async getOrders(req, res) {
+    await checkSession(req);
+
+    const {
+      _end = 10,
+      _order = 'ASC',
+      _sort = 'id',
+      _start = 0,
+      execute_date,
+      order_complete,
+    } = req.query;
+
+    let preparedResults = [];
+
+    const where = order_complete ? { order_complete } : {};
+    let orders = await db.models.Order.findAndCountAll({
+      where,
+      offset: _start,
+      limit: _end,
+      order: [[_sort, _order]],
+    });
+
+    if (execute_date) {
+      orders.rows = orders.rows.filter((order) =>
+        new Date(order.execute_date).toISOString().startsWith(execute_date)
+      );
+      orders.count = orders.rows.length;
+    }
+
+    res.setHeader('Access-Control-Expose-Headers', 'X-Total-Count');
+    res.setHeader('X-Total-Count', orders.count);
+
+    return res.status(200).send(orders.rows);
+  }
+
   async getOrder(req, res) {
     const sessionInfo = await checkSession(req);
     const logId = await writeLog({
@@ -279,6 +314,39 @@ class OrderController {
           status: {
             [db.Op.ne]: 'pending',
           },
+        },
+      });
+      updateLog(logId, { status: 'success' });
+      res.json({ success: true, data: orders, sessionInfo });
+    } catch (e) {
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.json({
+        success: false,
+        data: null,
+        error: e?.response?.data?.error?.message,
+        sessionInfo,
+      });
+    }
+  }
+
+  async getExpiration(req, res) {
+    const sessionInfo = await checkSession(req);
+    const logId = await writeLog({
+      action: 'getUserOrders',
+      status: 'in progress',
+      sessionInfo,
+      req,
+    });
+
+    try {
+      let orders = await db.models.Order.findAll({
+        where: {
+          [db.Op.and]: [
+            { execute_date: { [db.Op.lte]: new Date() } },
+            { order_complete: false },
+            { status: 'pending_approve' },
+            { smart_contract: true },
+          ],
         },
       });
       updateLog(logId, { status: 'success' });
