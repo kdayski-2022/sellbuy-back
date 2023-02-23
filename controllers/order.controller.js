@@ -16,9 +16,85 @@ const { getAccessToken } = require('../lib/auth');
 const { writeLog, updateLog } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
 const { convertUSDCToETH, parseError } = require('../lib/lib');
+const { COMMISSION } = require('../config/constants.json');
+const { calculatePayouts } = require('../lib/order');
 dotenv.config();
 const apiUrl = process.env.API_URL;
 const infuraRpc = process.env.INFURA_RPC;
+
+const getCurrentPrice = async () => {
+  try {
+    const { data } = await axios.get(
+      `${apiUrl}/public/get_book_summary_by_currency?currency=ETH&kind=option`
+    );
+    return data.result[0].estimated_delivery_price;
+  } catch (e) {
+    console.log(e);
+    return 0;
+  }
+};
+
+const setExtraFields = async (orders) => {
+  try {
+    const currentPrice = await getCurrentPrice();
+    if (currentPrice) {
+      orders.rows = orders.rows.map((order) => {
+        let { ETHToPay, USDCToPay, isValidToSell } = calculatePayouts({
+          ...order,
+          end_index_price: currentPrice,
+        });
+
+        let payout_calculation;
+        if (isValidToSell) {
+          payout_calculation = `${USDCToPay} USDC`;
+        } else {
+          payout_calculation = `${ETHToPay} ETH`;
+          USDCToPay = Math.floor(currentPrice * order.amount + order.recieve);
+        }
+
+        const app_revenue =
+          Math.round((order.recieve / (1 - COMMISSION)) * COMMISSION * 100) /
+          100;
+
+        if (payout_calculation) order.payout_calculation = payout_calculation;
+        if (USDCToPay) order.payout_calculation_usdc = USDCToPay;
+        if (app_revenue) order.app_revenue = app_revenue;
+        return order;
+      });
+    }
+    return orders;
+  } catch (e) {
+    console.log(e);
+    return orders;
+  }
+};
+
+const customFilters = (orders, execute_date, total) => {
+  try {
+    if (execute_date) {
+      orders.rows = orders.rows.filter((order) =>
+        new Date(order.execute_date).toISOString().startsWith(execute_date)
+      );
+    }
+    if (total) {
+      const amount_total = orders.rows.reduce((a, b) => a + b.amount, 0);
+      const recieve_total = orders.rows.reduce((a, b) => a + b.recieve, 0);
+      const app_revenue_total = orders.rows.reduce(
+        (a, b) => a + b.app_revenue,
+        0
+      );
+      if (orders.rows.length) {
+        orders.rows = [
+          { ...orders.rows[0], amount_total, recieve_total, app_revenue_total },
+        ];
+      }
+    }
+    return orders;
+  } catch (e) {
+    console.log(e);
+    return orders;
+  }
+};
 
 class OrderController {
   async getOrders(req, res) {
@@ -31,11 +107,11 @@ class OrderController {
       _start = 0,
       execute_date,
       order_complete,
+      total,
     } = req.query;
-
     let preparedResults = [];
-
-    const where = order_complete ? { order_complete } : {};
+    const where =
+      order_complete === 0 || order_complete ? { order_complete } : {};
     let orders = await db.models.Order.findAndCountAll({
       where,
       offset: _start,
@@ -43,12 +119,9 @@ class OrderController {
       order: [[_sort, _order]],
     });
 
-    if (execute_date) {
-      orders.rows = orders.rows.filter((order) =>
-        new Date(order.execute_date).toISOString().startsWith(execute_date)
-      );
-      orders.count = orders.rows.length;
-    }
+    orders = await setExtraFields(orders);
+    orders = customFilters(orders, execute_date, total);
+    orders.count = orders.rows.length;
 
     res.setHeader('Access-Control-Expose-Headers', 'X-Total-Count');
     res.setHeader('X-Total-Count', orders.count);
