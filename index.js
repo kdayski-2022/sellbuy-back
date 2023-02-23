@@ -218,7 +218,7 @@ db.connection
       }, 10000);
 
       // try {
-      //   await resetOrders();
+      // await resetOrders();
       //   let orders = await db.models.Order.findAll({
       //     where: {
       //       [db.Op.and]: [
