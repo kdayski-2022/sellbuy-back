@@ -15,7 +15,6 @@ const Transfer = require('../lib/transfer');
 dotenv.config();
 const apiUrl = process.env.API_URL;
 const infuraRpc = process.env.INFURA_RPC;
-const SERVICE_WALLET_ADDRESS = process.env.SERVICE_WALLET_ADDRESS;
 const WITHDRAWAL_TOKEN_ADDRESS = process.env.WITHDRAWAL_TOKEN_ADDRESS;
 
 class PeriodController {

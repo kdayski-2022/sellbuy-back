@@ -228,7 +228,7 @@ db.connection
       //       ],
       //     },
       //   });
-      //   const payoutData = await createPayoutData(orders);
+      // const payoutData = await createPayoutData(orders);
 
       //   console.log(payoutData)
       //   // await payout.create(payoutData)
