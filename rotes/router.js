@@ -8,6 +8,7 @@ const periodController = require('../controllers/period.controller');
 const strikeController = require('../controllers/strike.controller');
 const adminPanel = require('../controllers/adminPanel.controller');
 const sessionController = require('../controllers/session.controller');
+const configController = require('../controllers/config.controller');
 const chatController = require('../controllers/chat.controller');
 const statsController = require('../controllers/stats.controller');
 
@@ -33,6 +34,7 @@ router.get('/prices/buy', priceController.getBuyPrices);
 router.get('/strikes', strikeController.getStrikes);
 
 router.get('/session', sessionController.create);
+router.get('/config', configController.getConfig);
 router.get('/chat', chatController.getChat);
 
 router.post('/login', adminPanel.login);
