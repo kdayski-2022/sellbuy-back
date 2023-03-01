@@ -11,6 +11,7 @@ const sessionController = require('../controllers/session.controller');
 const configController = require('../controllers/config.controller');
 const chatController = require('../controllers/chat.controller');
 const statsController = require('../controllers/stats.controller');
+const userController = require('../controllers/user.controller');
 
 router.get('/dates', dateController.getDates);
 
@@ -36,6 +37,9 @@ router.get('/strikes', strikeController.getStrikes);
 router.get('/session', sessionController.create);
 router.get('/config', configController.getConfig);
 router.get('/chat', chatController.getChat);
+
+router.get('/ref/:address', userController.getRef);
+router.post('/ref_code/:ref_code', userController.addReferral);
 
 router.post('/login', adminPanel.login);
 

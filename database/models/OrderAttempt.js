@@ -19,6 +19,11 @@ module.exports = {
     allowNull: false,
     defaultValue: false,
   },
+  referral_registration: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
   order_id: DataTypes.STRING,
   instrument_name: DataTypes.STRING,
 
