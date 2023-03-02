@@ -36,28 +36,30 @@ const getCurrentPrice = async () => {
 
 const setExtraFields = async (orders) => {
   try {
-    const currentPrice = await getCurrentPrice();
+    let currentPrice = await getCurrentPrice();
     if (currentPrice) {
       orders.rows = orders.rows.map((order) => {
+        if (new Date() > order.execute_date)
+          currentPrice = order.end_index_price;
         let { ETHToPay, USDCToPay, isValidToSell } = calculatePayouts({
           ...order,
           end_index_price: currentPrice,
         });
 
-        let payout_calculation;
+        let payout_calculation_usdc,
+          payout_calculation_eth = null;
         if (isValidToSell) {
-          payout_calculation = `${USDCToPay} USDC`;
+          payout_calculation_usdc = USDCToPay;
         } else {
-          payout_calculation = `${ETHToPay} ETH`;
-          USDCToPay = Math.floor(currentPrice * order.amount + order.recieve);
+          payout_calculation_eth = ETHToPay;
         }
 
         const app_revenue =
           Math.round((order.recieve / (1 - COMMISSION)) * COMMISSION * 100) /
           100;
 
-        if (payout_calculation) order.payout_calculation = payout_calculation;
-        if (USDCToPay) order.payout_calculation_usdc = USDCToPay;
+        order.payout_calculation_usdc = payout_calculation_usdc;
+        order.payout_calculation_eth = payout_calculation_eth;
         if (app_revenue) order.app_revenue = app_revenue;
         return order;
       });
