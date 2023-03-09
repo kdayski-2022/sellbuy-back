@@ -5,4 +5,5 @@ module.exports = {
   ref_code: DataTypes.STRING,
   ref_user_id: DataTypes.INTEGER,
   ref_fee: DataTypes.INTEGER,
+  nick_name: DataTypes.STRING,
 };

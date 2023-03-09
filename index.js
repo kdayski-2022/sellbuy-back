@@ -40,6 +40,8 @@ crud(app);
 app.use(cors());
 app.use(express.json());
 app.use('/api', useRouter);
+app.crud('/api/user_crud', model.User);
+app.crud('/api/referral_payout_crud', model.ReferralPayout);
 app.crud('/api/order_crud', model.Order);
 app.crud('/api/log_crud', model.Log);
 
@@ -54,60 +56,6 @@ db.connection
     // clearInterval(interval);
     app.listen(PORT, async () => {
       console.log(`listen on port ${PORT}`);
-      //? BEST APR
-      // const request = async (url, direction) => {
-      //   return await axios.get(url, {
-      //     headers: {
-      //       Accept: 'application/json',
-      //       'Content-Type': 'application/json',
-      //       'Direction-Type': direction,
-      //       'Session-Token':
-      //         '5e845ac00f50a16c226b06c519d4205b54ff45ded7fb714b91f7dd5971de60e1',
-      //       'User-Address': '0x05528440b9e0323d7ccb9baf88b411ce481694a0',
-      //     },
-      //   });
-      // };
-
-      // const aprSniff = async (prices, direction) => {
-      //   const result = [];
-      //   for (price of prices) {
-      //     const {
-      //       data: {
-      //         data: { periods },
-      //       },
-      //     } = await request(
-      //       `https://api.dev.sell-high.io/api/periods_price?price=${price}&amount=1`,
-      //       direction
-      //     );
-      //     for (period of periods) {
-      //       if (period.apr) {
-      //         result.push({ ...period, direction });
-      //       }
-      //     }
-      //   }
-      //   return result;
-      // };
-
-      // const buyPrices = await request(
-      //   'https://api.dev.sell-high.io/api/prices/buy',
-      //   'buy'
-      // );
-      // const sellPrices = await request(
-      //   'https://api.dev.sell-high.io/api/prices/sell',
-      //   'sell'
-      // );
-      // const buyAprs = await aprSniff(buyPrices.data.data.prices, 'buy');
-      // const sellAprs = await aprSniff(sellPrices.data.data.prices, 'sell');
-      // const periodsApr = [...buyAprs, ...sellAprs];
-      // const largestApr = periodsApr.reduce(function (prev, current) {
-      //   return prev.apr > current.apr ? prev : current;
-      // });
-      // console.log(largestApr);
-      // const mostProfitOrder = await request(
-      //   `https://api.dev.sell-high.io/api/order?price=${largestApr.price}&period=${largestApr.period}&amount=1`,
-      //   largestApr.direction
-      // );
-      // console.log(mostProfitOrder.data);
 
       // ! auto order attempt payment status
       setInterval(async () => {
@@ -217,26 +165,6 @@ db.connection
         }
       }, 10000);
 
-      // try {
-      // await resetOrders();
-      //   let orders = await db.models.Order.findAll({
-      //     where: {
-      //       [db.Op.and]: [
-      //         { execute_date: { [db.Op.lte]: new Date() } },
-      //         { order_complete: false },
-      //         { status: { [db.Op.notIn]: ['approved', 'denied', 'broken'] } },
-      //       ],
-      //     },
-      //   });
-      // const payoutData = await createPayoutData(orders);
-
-      //   console.log(payoutData)
-      //   // await payout.create(payoutData)
-      //   // telegram.send(payoutData);
-      // } catch (e) {
-      //   console.log(e);
-      // }
-
       // ! auto order complete
       setInterval(async () => {
         try {
@@ -278,6 +206,13 @@ db.connection
               },
             },
           });
+          const orderAttempts = await db.models.OrderAttempt.findAll({
+            where: {
+              createdAt: {
+                [db.Op.lt]: monthAgo,
+              },
+            },
+          });
 
           for (const log of logs) {
             await db.models.Log.destroy({ where: { id: log.id } });
@@ -285,12 +220,15 @@ db.connection
           for (const session of sessions) {
             await db.models.UserSession.destroy({ where: { id: session.id } });
           }
+          for (const orderAttempt of orderAttempts) {
+            await db.models.OrderAttempt.destroy({
+              where: { id: orderAttempt.id },
+            });
+          }
         } catch (e) {
           console.log(e);
         }
-      }, 6000000);
+      }, 86400000);
     });
-    // }
-    // }, 10);
   })
   .catch((e) => console.log(e));

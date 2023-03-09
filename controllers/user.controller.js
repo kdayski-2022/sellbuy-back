@@ -162,6 +162,45 @@ class UserController {
       });
     }
   }
+
+  async getUsers(req, res) {
+    await checkSession(req);
+    const { _end = 10, _order = 'ASC', _sort = 'id', _start = 0 } = req.query;
+    const users = await db.models.User.findAndCountAll({
+      offset: _start,
+      limit: _end,
+      order: [[_sort, _order]],
+    });
+    for (const user of users.rows) {
+      if (!user.nick_name) user.nick_name = 'unknown';
+      if (!user.ref_fee) user.ref_fee = REF_FEE;
+    }
+    users.count = users.rows.length;
+
+    res.setHeader('Access-Control-Expose-Headers', 'X-Total-Count');
+    res.setHeader('X-Total-Count', users.count);
+
+    return res.status(200).send(users.rows);
+  }
+
+  async updateUser(req, res) {
+    const sessionInfo = await checkSession(req);
+    const user = req.body;
+
+    try {
+      const { id } = user;
+      await db.models.User.update({ ...user }, { where: { id } });
+      res.json(user);
+    } catch (e) {
+      res.json({
+        success: false,
+        data: null,
+        error: parseError(e),
+        sessionInfo,
+      });
+    }
+  }
+
   async addReferral(req, res) {
     const sessionInfo = await checkSession(req);
     const logId = await writeLog({

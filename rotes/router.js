@@ -12,6 +12,7 @@ const configController = require('../controllers/config.controller');
 const chatController = require('../controllers/chat.controller');
 const statsController = require('../controllers/stats.controller');
 const userController = require('../controllers/user.controller');
+const referralPayoutController = require('../controllers/referralPayout.controller');
 
 router.get('/dates', dateController.getDates);
 
@@ -40,6 +41,15 @@ router.get('/chat', chatController.getChat);
 
 router.get('/ref/:address', userController.getRef);
 router.post('/ref_code/:ref_code', userController.addReferral);
+router.get('/user_crud', userController.getUsers);
+router.put('/user_crud/:id', userController.updateUser);
+
+router.get('/referral_payout_crud', referralPayoutController.getReferralPayout);
+router.put(
+  '/referral_payout_crud/:id',
+  referralPayoutController.updateReferralPayout
+);
+router.post('/referral/make_payment', referralPayoutController.makePayment);
 
 router.post('/login', adminPanel.login);
 

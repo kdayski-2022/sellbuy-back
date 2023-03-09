@@ -41,18 +41,16 @@ const setExtraFields = async (orders) => {
       orders.rows = orders.rows.map((order) => {
         if (new Date() > order.execute_date)
           currentPrice = order.end_index_price;
-        let { ETHToPay, USDCToPay, isValidToSell } = calculatePayouts({
-          ...order,
-          end_index_price: currentPrice,
-        });
+        let { ETHToPay, USDCToPay, order_executed, payout_currency } =
+          calculatePayouts({
+            ...order,
+            end_index_price: currentPrice,
+          });
 
         let payout_calculation_usdc,
           payout_calculation_eth = null;
-        if (isValidToSell) {
-          payout_calculation_usdc = USDCToPay;
-        } else {
-          payout_calculation_eth = ETHToPay;
-        }
+        if (payout_currency === 'USDC') payout_calculation_usdc = USDCToPay;
+        if (payout_currency === 'ETH') payout_calculation_eth = ETHToPay;
 
         const app_revenue =
           Math.round((order.recieve / (1 - COMMISSION)) * COMMISSION * 100) /
@@ -60,6 +58,12 @@ const setExtraFields = async (orders) => {
 
         order.payout_calculation_usdc = payout_calculation_usdc;
         order.payout_calculation_eth = payout_calculation_eth;
+        if (new Date() > order.execute_date) {
+          order.order_executed_calculation = order.order_executed;
+        } else {
+          order.order_executed_calculation = order_executed;
+        }
+        order.payout_currency = payout_currency;
         if (app_revenue) order.app_revenue = app_revenue;
         return order;
       });
@@ -71,14 +75,34 @@ const setExtraFields = async (orders) => {
   }
 };
 
-const customFilters = (orders, execute_date, total) => {
+const customFilters = async (orders, filters) => {
   try {
-    if (execute_date) {
+    if (filters.order_executed) {
+      let currentPrice = await getCurrentPrice();
+      if (currentPrice) {
+        orders.rows = orders.rows.filter((order) => {
+          let order_executed;
+          if (new Date() > order.execute_date) {
+            order_executed = order.order_executed;
+          } else {
+            const calculate = calculatePayouts({
+              ...order,
+              end_index_price: currentPrice,
+            });
+            order_executed = calculate.order_executed;
+          }
+          return String(order_executed) === filters.order_executed;
+        });
+      }
+    }
+    if (filters.execute_date) {
       orders.rows = orders.rows.filter((order) =>
-        new Date(order.execute_date).toISOString().startsWith(execute_date)
+        new Date(order.execute_date)
+          .toISOString()
+          .startsWith(filters.execute_date)
       );
     }
-    if (total) {
+    if (filters.total) {
       const amount_total = orders.rows.reduce((a, b) => a + b.amount, 0);
       const recieve_total = orders.rows.reduce((a, b) => a + b.recieve, 0);
       const app_revenue_total = orders.rows.reduce(
@@ -108,6 +132,7 @@ class OrderController {
       _sort = 'id',
       _start = 0,
       execute_date,
+      order_executed,
       order_complete,
       total,
     } = req.query;
@@ -122,7 +147,11 @@ class OrderController {
     });
 
     orders = await setExtraFields(orders);
-    orders = customFilters(orders, execute_date, total);
+    orders = await customFilters(orders, {
+      execute_date,
+      total,
+      order_executed,
+    });
     orders.count = orders.rows.length;
 
     res.setHeader('Access-Control-Expose-Headers', 'X-Total-Count');
@@ -424,9 +453,20 @@ class OrderController {
           ],
         },
       });
+      for (const order of orders) {
+        const { ETHToPay, USDCToPay, payout_currency } =
+          calculatePayouts(order);
+        if (payout_currency === 'USDC') {
+          order.payout = USDCToPay;
+        }
+        if (payout_currency === 'ETH') {
+          order.payout = ETHToPay;
+        }
+      }
       updateLog(logId, { status: 'success' });
       res.json({ success: true, data: orders, sessionInfo });
     } catch (e) {
+      console.log(e);
       updateLog(logId, { status: 'failed', error: parseError(e) });
       res.json({
         success: false,

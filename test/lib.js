@@ -157,7 +157,7 @@ const userOrderTypesCheck = (userOrder) => {
 		expect(typeof userOrder.end_index_price).toBe("number")
 		expect(typeof userOrder.start_index_price).toBe("number")
 		expect(typeof userOrder.settlement_date).toBe("string")
-		expect(typeof userOrder.eth_sold).toBe("boolean")
+		expect(typeof userOrder.order_executed).toBe("boolean")
 		expect(typeof userOrder.payout_eth).toBe("number")
 		expect(typeof userOrder.payout_usdc).toBe("number")
 		expect(typeof userOrder.payout_tx).toBe("string")
