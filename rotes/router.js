@@ -43,6 +43,7 @@ router.get('/ref/:address', userController.getRef);
 router.post('/ref_code/:ref_code', userController.addReferral);
 router.get('/user_crud', userController.getUsers);
 router.put('/user_crud/:id', userController.updateUser);
+router.post('/utm', userController.addUtm);
 
 router.get('/referral_payout_crud', referralPayoutController.getReferralPayout);
 router.put(

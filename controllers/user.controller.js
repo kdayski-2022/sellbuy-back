@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const db = require('../database');
-const { writeLog, updateLog } = require('../lib/logger');
+const { writeLog, updateLog, getUserData } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
 const { parseError } = require('../lib/lib');
 const { COMMISSION } = require('../config/constants.json');
@@ -233,6 +233,34 @@ class UserController {
         await updateUser(referral, { ref_user_id: parent.id });
       }
 
+      updateLog(logId, { status: 'success' });
+      res.json({ success: true, sessionInfo });
+    } catch (e) {
+      console.log(e);
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.json({
+        success: false,
+        error: e?.response?.data?.error?.message,
+        sessionInfo,
+      });
+    }
+  }
+
+  async addUtm(req, res) {
+    const sessionInfo = await checkSession(req);
+    const logId = await writeLog({
+      action: 'addUtm',
+      status: 'in progress',
+      sessionInfo,
+      req,
+    });
+    const { utm } = req.body;
+    try {
+      const userData = await getUserData(req);
+      await db.models.Utm.create({
+        utm,
+        data: JSON.stringify(userData),
+      });
       updateLog(logId, { status: 'success' });
       res.json({ success: true, sessionInfo });
     } catch (e) {
