@@ -22,6 +22,7 @@ router.post('/order', orderController.postOrder);
 router.put('/order_crud/:id', orderController.updateOrder);
 router.get('/order_crud', orderController.getOrders);
 router.get('/expiration', orderController.getExpiration);
+router.post('/expiration', orderController.postExpiration);
 
 router.post('/order_state/save', orderAttemptController.postOrderAttempt);
 router.post('/order_state/update', orderAttemptController.updateOrderAttempt);

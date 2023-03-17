@@ -8,7 +8,6 @@ const cors = require('cors');
 const db = require('./database');
 const model = require('./lib/modelWrapper')(db.models);
 const Transfer = require('./lib/transfer');
-const Payout = require('./lib/payout');
 const Web3 = require('web3');
 const crud = require('./lib/express-crud');
 
@@ -31,8 +30,6 @@ const PORT = process.env.PORT || 8080;
 
 const web3 = new Web3(infuraRpc);
 
-const payout = new Payout();
-payout.init();
 const transfer = new Transfer();
 transfer.init();
 const app = express();
@@ -165,6 +162,7 @@ db.connection
         }
       }, 10000);
 
+      // resetOrders();
       // ! auto order complete
       setInterval(async () => {
         try {
@@ -178,9 +176,7 @@ db.connection
             },
           });
 
-          for (const order of orders) {
-            await listenForPayout(order);
-          }
+          await listenForPayout(orders);
         } catch (e) {
           console.log(e);
         }

@@ -164,6 +164,8 @@ class PeriodController {
               const apr =
                 Math.round(parseFloat((percentForEach / days) * 365) * 100) /
                 100;
+              const earnPercent =
+                Math.round((recieve / (amount * price)) * 100 * 100) / 100;
               if (!Math.floor(recieve))
                 return result.push({
                   title,
@@ -181,6 +183,7 @@ class PeriodController {
                 days,
                 price,
                 amount,
+                earnPercent,
                 error: null,
               });
             })

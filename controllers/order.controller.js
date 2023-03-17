@@ -409,7 +409,6 @@ class OrderController {
     });
     const { userAddress } = req.query;
     const direction = req.headers['direction-type'];
-
     try {
       const orders = await db.models.Order.findAll({
         where: {
@@ -436,7 +435,7 @@ class OrderController {
   async getExpiration(req, res) {
     const sessionInfo = await checkSession(req);
     const logId = await writeLog({
-      action: 'getUserOrders',
+      action: 'getExpiration',
       status: 'in progress',
       sessionInfo,
       req,
@@ -472,6 +471,57 @@ class OrderController {
         success: false,
         data: null,
         error: e?.response?.data?.error?.message,
+        sessionInfo,
+      });
+    }
+  }
+
+  async postExpiration(req, res) {
+    const sessionInfo = await checkSession(req);
+    const logId = await writeLog({
+      action: 'postExpiration',
+      status: 'in progress',
+      sessionInfo,
+      req,
+    });
+
+    const { orders, tx } = req.body;
+    try {
+      for (const order of orders) {
+        let payout_usdc, payout_eth;
+        if (order.payout_currency === 'ETH') {
+          payout_usdc = order.payout * order.end_index_price;
+          payout_eth = order.payout;
+        }
+        if (order.payout_currency === 'USDC') {
+          payout_usdc = order.payout;
+          payout_eth = order.payout / order.end_index_price;
+        }
+        await db.models.Order.update(
+          {
+            order_complete: true,
+            status: 'approved',
+            settlement_date: new Date(),
+            payout_usdc,
+            payout_eth,
+            payout_tx: tx,
+          },
+          { where: { id: order.id } }
+        );
+      }
+      res.json({
+        success: true,
+        data: order,
+        message: 'Orders was updated',
+        sessionInfo,
+      });
+      updateLog(logId, { status: 'success' });
+    } catch (e) {
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.json({
+        success: false,
+        data: null,
+        error: parseError(e),
         sessionInfo,
       });
     }
