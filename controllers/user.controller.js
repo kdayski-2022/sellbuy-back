@@ -111,6 +111,91 @@ const getRefTable = async (orders, ref_fee) => {
 };
 
 class UserController {
+  async getSubscription(req, res) {
+    const sessionInfo = await checkSession(req);
+    const logId = await writeLog({
+      action: 'getSubscription',
+      status: 'in progress',
+      sessionInfo,
+      req,
+    });
+    const { address } = req.params;
+    try {
+      const subscription = await db.models.UserSubscription.findOne({
+        where: {
+          address: address.toLowerCase(),
+        },
+      });
+
+      updateLog(logId, { status: 'success' });
+      res.json({
+        success: true,
+        data: { subscription },
+        sessionInfo,
+      });
+    } catch (e) {
+      console.log(e);
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.json({
+        success: false,
+        data: null,
+        error: e?.response?.data?.error?.message,
+        sessionInfo,
+      });
+    }
+  }
+
+  async postSubscription(req, res) {
+    const sessionInfo = await checkSession(req);
+    const logId = await writeLog({
+      action: 'postSubcription',
+      status: 'in progress',
+      sessionInfo,
+      req,
+    });
+    const { address } = req.params;
+    const { type, email } = req.body;
+    try {
+      let subscription = await db.models.UserSubscription.findOne({
+        where: {
+          address: address.toLowerCase(),
+        },
+      });
+      if (!subscription) {
+        await db.models.UserSubscription.create({
+          address: address.toLowerCase(),
+          email,
+        });
+      }
+      switch (type) {
+        case 'notifications':
+          await db.models.UserSubscription.update(
+            { notifications: true, email },
+            { where: { address: address.toLowerCase() } }
+          );
+          break;
+        default:
+          break;
+      }
+      subscription = await db.models.UserSubscription.findOne({
+        where: {
+          address: address.toLowerCase(),
+        },
+      });
+
+      updateLog(logId, { status: 'success' });
+      res.json({ success: true, sessionInfo, data: { subscription } });
+    } catch (e) {
+      console.log(e);
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.json({
+        success: false,
+        error: e?.response?.data?.error?.message,
+        sessionInfo,
+      });
+    }
+  }
+
   async getRef(req, res) {
     const sessionInfo = await checkSession(req);
     const logId = await writeLog({
@@ -255,11 +340,14 @@ class UserController {
       req,
     });
     const { utm } = req.body;
+    const direction = req.headers['direction-type'];
     try {
       const userData = await getUserData(req);
       await db.models.Utm.create({
         utm,
         data: JSON.stringify(userData),
+        sessionToken: sessionInfo ? sessionInfo.sessionToken : null,
+        direction,
       });
       updateLog(logId, { status: 'success' });
       res.json({ success: true, sessionInfo });

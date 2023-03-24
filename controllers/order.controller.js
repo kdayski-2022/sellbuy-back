@@ -38,35 +38,37 @@ const setExtraFields = async (orders) => {
   try {
     let currentPrice = await getCurrentPrice();
     if (currentPrice) {
-      orders.rows = orders.rows.map((order) => {
-        if (new Date() > order.execute_date)
-          currentPrice = order.end_index_price;
-        let { ETHToPay, USDCToPay, order_executed, payout_currency } =
-          calculatePayouts({
-            ...order,
-            end_index_price: currentPrice,
-          });
+      orders.rows = await Promise.all(
+        orders.rows.map(async (order) => {
+          if (new Date() > order.execute_date)
+            currentPrice = order.end_index_price;
+          let { ETHToPay, USDCToPay, order_executed, payout_currency } =
+            await calculatePayouts({
+              ...order,
+              end_index_price: currentPrice,
+            });
 
-        let payout_calculation_usdc,
-          payout_calculation_eth = null;
-        if (payout_currency === 'USDC') payout_calculation_usdc = USDCToPay;
-        if (payout_currency === 'ETH') payout_calculation_eth = ETHToPay;
+          let payout_calculation_usdc,
+            payout_calculation_eth = null;
+          if (payout_currency === 'USDC') payout_calculation_usdc = USDCToPay;
+          if (payout_currency === 'ETH') payout_calculation_eth = ETHToPay;
 
-        const app_revenue =
-          Math.round((order.recieve / (1 - COMMISSION)) * COMMISSION * 100) /
-          100;
+          const app_revenue =
+            Math.round((order.recieve / (1 - COMMISSION)) * COMMISSION * 100) /
+            100;
 
-        order.payout_calculation_usdc = payout_calculation_usdc;
-        order.payout_calculation_eth = payout_calculation_eth;
-        if (new Date() > order.execute_date) {
-          order.order_executed_calculation = order.order_executed;
-        } else {
-          order.order_executed_calculation = order_executed;
-        }
-        order.payout_currency = payout_currency;
-        if (app_revenue) order.app_revenue = app_revenue;
-        return order;
-      });
+          order.payout_calculation_usdc = payout_calculation_usdc;
+          order.payout_calculation_eth = payout_calculation_eth;
+          if (new Date() > order.execute_date) {
+            order.order_executed_calculation = order.order_executed;
+          } else {
+            order.order_executed_calculation = order_executed;
+          }
+          order.payout_currency = payout_currency;
+          if (app_revenue) order.app_revenue = app_revenue;
+          return order;
+        })
+      );
     }
     return orders;
   } catch (e) {
@@ -80,19 +82,21 @@ const customFilters = async (orders, filters) => {
     if (filters.order_executed) {
       let currentPrice = await getCurrentPrice();
       if (currentPrice) {
-        orders.rows = orders.rows.filter((order) => {
-          let order_executed;
-          if (new Date() > order.execute_date) {
-            order_executed = order.order_executed;
-          } else {
-            const calculate = calculatePayouts({
-              ...order,
-              end_index_price: currentPrice,
-            });
-            order_executed = calculate.order_executed;
-          }
-          return String(order_executed) === filters.order_executed;
-        });
+        orders.rows = await Promise.all(
+          orders.rows.filter(async (order) => {
+            let order_executed;
+            if (new Date() > order.execute_date) {
+              order_executed = order.order_executed;
+            } else {
+              const calculate = await calculatePayouts({
+                ...order,
+                end_index_price: currentPrice,
+              });
+              order_executed = calculate.order_executed;
+            }
+            return String(order_executed) === filters.order_executed;
+          })
+        );
       }
     }
     if (filters.execute_date) {
@@ -101,19 +105,6 @@ const customFilters = async (orders, filters) => {
           .toISOString()
           .startsWith(filters.execute_date)
       );
-    }
-    if (filters.total) {
-      const amount_total = orders.rows.reduce((a, b) => a + b.amount, 0);
-      const recieve_total = orders.rows.reduce((a, b) => a + b.recieve, 0);
-      const app_revenue_total = orders.rows.reduce(
-        (a, b) => a + b.app_revenue,
-        0
-      );
-      if (orders.rows.length) {
-        orders.rows = [
-          { ...orders.rows[0], amount_total, recieve_total, app_revenue_total },
-        ];
-      }
     }
     return orders;
   } catch (e) {
@@ -134,11 +125,8 @@ class OrderController {
       execute_date,
       order_executed,
       order_complete,
-      total,
     } = req.query;
-    let preparedResults = [];
-    const where =
-      order_complete === 0 || order_complete ? { order_complete } : {};
+    const where = order_complete ? { order_complete } : {};
     let orders = await db.models.Order.findAndCountAll({
       where,
       offset: _start,
@@ -146,12 +134,11 @@ class OrderController {
       order: [[_sort, _order]],
     });
 
-    orders = await setExtraFields(orders);
     orders = await customFilters(orders, {
       execute_date,
-      total,
       order_executed,
     });
+    orders = await setExtraFields(orders);
     orders.count = orders.rows.length;
 
     res.setHeader('Access-Control-Expose-Headers', 'X-Total-Count');
@@ -453,8 +440,9 @@ class OrderController {
         },
       });
       for (const order of orders) {
-        const { ETHToPay, USDCToPay, payout_currency } =
-          calculatePayouts(order);
+        const { ETHToPay, USDCToPay, payout_currency } = await calculatePayouts(
+          order
+        );
         if (payout_currency === 'USDC') {
           order.payout = USDCToPay;
         }

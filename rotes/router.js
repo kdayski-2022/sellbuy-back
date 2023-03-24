@@ -46,6 +46,9 @@ router.get('/user_crud', userController.getUsers);
 router.put('/user_crud/:id', userController.updateUser);
 router.post('/utm', userController.addUtm);
 
+router.get('/subscribtion/:address', userController.getSubscription);
+router.post('/subscribtion/:address', userController.postSubscription);
+
 router.get('/referral_payout_crud', referralPayoutController.getReferralPayout);
 router.put(
   '/referral_payout_crud/:id',
