@@ -7,6 +7,8 @@ const {
   formatToChartData,
   formatToWebStatistics,
   formatToAdminStatistics,
+  formatToOrdersCountChartData,
+  formatToUniqueAddressesChartData,
 } = require('../lib/stats');
 dotenv.config();
 
@@ -37,6 +39,80 @@ class StatsController {
 
       updateLog(logId, { status: 'success' });
       res.json({ success: true, data: { income, recieve }, sessionInfo });
+    } catch (e) {
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.json({
+        success: false,
+        data: null,
+        error: e?.response?.data?.error?.message,
+        sessionInfo,
+      });
+    }
+  }
+
+  async getOrdersCount(req, res) {
+    const sessionInfo = await checkSession(req);
+    const logId = await writeLog({
+      action: 'getStatsOrdersCount',
+      status: 'in progress',
+      sessionInfo,
+      req,
+    });
+
+    try {
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      const orders = await db.models.Order.findAll({
+        where: {
+          order_complete: true,
+          status: 'approved',
+          execute_date: {
+            [db.Op.between]: [oneYearAgo, new Date()],
+          },
+        },
+      });
+
+      const data = formatToOrdersCountChartData(orders);
+
+      updateLog(logId, { status: 'success' });
+      res.json({ success: true, data, sessionInfo });
+    } catch (e) {
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.json({
+        success: false,
+        data: null,
+        error: e?.response?.data?.error?.message,
+        sessionInfo,
+      });
+    }
+  }
+
+  async getUniqueAddresses(req, res) {
+    const sessionInfo = await checkSession(req);
+    const logId = await writeLog({
+      action: 'getStatsUniqueAddresses',
+      status: 'in progress',
+      sessionInfo,
+      req,
+    });
+
+    try {
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      const orders = await db.models.Order.findAll({
+        where: {
+          order_complete: true,
+          status: 'approved',
+          execute_date: {
+            [db.Op.between]: [oneYearAgo, new Date()],
+          },
+        },
+      });
+
+      const data = formatToUniqueAddressesChartData(orders);
+
+      updateLog(logId, { status: 'success' });
+      res.json({ success: true, data, sessionInfo });
     } catch (e) {
       updateLog(logId, { status: 'failed', error: parseError(e) });
       res.json({

@@ -22,6 +22,7 @@ router.post('/order', orderController.postOrder);
 router.put('/order_crud/:id', orderController.updateOrder);
 router.get('/order_crud', orderController.getOrders);
 router.get('/expiration', orderController.getExpiration);
+router.get('/expiration/prediction', orderController.getExpirationPrediction);
 router.post('/expiration', orderController.postExpiration);
 
 router.post('/order_state/save', orderAttemptController.postOrderAttempt);
@@ -59,6 +60,11 @@ router.post('/referral/make_payment', referralPayoutController.makePayment);
 router.post('/login', adminPanel.login);
 
 router.get('/stats/income', statsController.getIncome);
+router.get('/stats/orders/count', statsController.getOrdersCount);
+router.get(
+  '/stats/orders/unique_addresses',
+  statsController.getUniqueAddresses
+);
 
 router.get('/web/statistics', statsController.getWebStatistics);
 router.get('/admin/statistics', statsController.getAdminStatistics);

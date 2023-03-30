@@ -17,7 +17,7 @@ const { writeLog, updateLog } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
 const { convertUSDCToETH, parseError } = require('../lib/lib');
 const { COMMISSION } = require('../config/constants.json');
-const { calculatePayouts } = require('../lib/order');
+const { calculatePayouts, getPayin } = require('../lib/order');
 dotenv.config();
 const apiUrl = process.env.API_URL;
 const infuraRpc = process.env.INFURA_RPC;
@@ -419,6 +419,59 @@ class OrderController {
     }
   }
 
+  async getExpirationPrediction(req, res) {
+    const sessionInfo = await checkSession(req);
+    const logId = await writeLog({
+      action: 'getExpirationPrediction',
+      status: 'in progress',
+      sessionInfo,
+      req,
+    });
+
+    try {
+      const now = new Date();
+      const sevenDaysLater = new Date();
+      sevenDaysLater.setDate(now.getDate() + 7);
+
+      let orders = await db.models.Order.findAll({
+        where: {
+          [db.Op.and]: [
+            { execute_date: { [db.Op.gte]: now } },
+            { execute_date: { [db.Op.lt]: sevenDaysLater } },
+            { order_complete: false },
+            { smart_contract: true },
+          ],
+        },
+      });
+      const web3 = new Web3(infuraRpc);
+      const end_index_price = await getCurrentPrice();
+      for (const order of orders) {
+        const { ETHToPay, USDCToPay, payout_currency, order_executed } =
+          await calculatePayouts({ ...order, end_index_price });
+        if (payout_currency === 'USDC') {
+          order.payout = USDCToPay;
+        }
+        if (payout_currency === 'ETH') {
+          order.payout = ETHToPay;
+        }
+        order.payout_currency = payout_currency;
+        order.order_executed = order_executed;
+        order.payin = await getPayin(web3, order);
+      }
+      updateLog(logId, { status: 'success' });
+      res.json({ success: true, data: orders, sessionInfo });
+    } catch (e) {
+      console.log(e);
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.json({
+        success: false,
+        data: null,
+        error: e?.response?.data?.error?.message,
+        sessionInfo,
+      });
+    }
+  }
+
   async getExpiration(req, res) {
     const sessionInfo = await checkSession(req);
     const logId = await writeLog({
@@ -439,6 +492,7 @@ class OrderController {
           ],
         },
       });
+      const web3 = new Web3(infuraRpc);
       for (const order of orders) {
         const { ETHToPay, USDCToPay, payout_currency } = await calculatePayouts(
           order
@@ -449,6 +503,7 @@ class OrderController {
         if (payout_currency === 'ETH') {
           order.payout = ETHToPay;
         }
+        order.payin = await getPayin(web3, order);
       }
       updateLog(logId, { status: 'success' });
       res.json({ success: true, data: orders, sessionInfo });
