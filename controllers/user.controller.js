@@ -154,7 +154,8 @@ class UserController {
       req,
     });
     const { address } = req.params;
-    const { type, email } = req.body;
+    const { subsctiptions, email } = req.body;
+    const { news, order } = subsctiptions;
     try {
       let subscription = await db.models.UserSubscription.findOne({
         where: {
@@ -167,16 +168,12 @@ class UserController {
           email,
         });
       }
-      switch (type) {
-        case 'notifications':
-          await db.models.UserSubscription.update(
-            { notifications: true, email },
-            { where: { address: address.toLowerCase() } }
-          );
-          break;
-        default:
-          break;
-      }
+
+      await db.models.UserSubscription.update(
+        { news, order, email },
+        { where: { address: address.toLowerCase() } }
+      );
+
       subscription = await db.models.UserSubscription.findOne({
         where: {
           address: address.toLowerCase(),

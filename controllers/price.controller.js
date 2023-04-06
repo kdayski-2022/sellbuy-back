@@ -27,7 +27,7 @@ class PriceController {
         updateLog(logId, { status: 'success' });
         res.json({ success: true, data: { currentPrice }, sessionInfo });
       })
-      .catch((err) => {
+      .catch(async (err) => {
         updateLog(logId, { status: 'failed', error: JSON.stringify(err) });
         res.json({ success: false, data: null, sessionInfo });
       });

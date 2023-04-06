@@ -15,7 +15,7 @@ const {
 const { getAccessToken } = require('../lib/auth');
 const { writeLog, updateLog } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
-const { convertUSDCToETH, parseError } = require('../lib/lib');
+const { parseError } = require('../lib/lib');
 const { COMMISSION } = require('../config/constants.json');
 const { calculatePayouts, getPayin } = require('../lib/order');
 dotenv.config();
@@ -79,32 +79,38 @@ const setExtraFields = async (orders) => {
 
 const customFilters = async (orders, filters) => {
   try {
-    if (filters.order_executed) {
-      let currentPrice = await getCurrentPrice();
-      if (currentPrice) {
-        orders.rows = await Promise.all(
-          orders.rows.filter(async (order) => {
-            let order_executed;
-            if (new Date() > order.execute_date) {
-              order_executed = order.order_executed;
-            } else {
-              const calculate = await calculatePayouts({
-                ...order,
-                end_index_price: currentPrice,
-              });
-              order_executed = calculate.order_executed;
-            }
-            return String(order_executed) === filters.order_executed;
-          })
-        );
-      }
-    }
     if (filters.execute_date) {
       orders.rows = orders.rows.filter((order) =>
         new Date(order.execute_date)
           .toISOString()
           .startsWith(filters.execute_date)
       );
+    }
+    if (filters.order_executed) {
+      let currentPrice = await getCurrentPrice();
+      if (currentPrice) {
+        const result = [];
+        for (const order of orders.rows) {
+          let order_executed;
+          if (new Date() > order.execute_date) {
+            order_executed = order.order_executed;
+          } else {
+            const calculate = await calculatePayouts({
+              ...order,
+              end_index_price: currentPrice,
+            });
+            order_executed = calculate.order_executed;
+            order_executed =
+              order_executed === 'false'
+                ? order_executed
+                : Boolean(order_executed);
+          }
+          if (String(order_executed) === String(filters.order_executed)) {
+            result.push(order);
+          }
+        }
+        orders.rows = result;
+      }
     }
     return orders;
   } catch (e) {
@@ -309,7 +315,6 @@ class OrderController {
             order,
             target_index_price: price,
             start_index_price,
-            // perpetual
           },
           { where: { user_payment_tx_hash: hash } }
         );

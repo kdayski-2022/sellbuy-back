@@ -14,13 +14,7 @@ const crud = require('./lib/express-crud');
 const { Socket } = require('./socket');
 const { postOrder } = require('./lib/order');
 const { checkState } = require('./lib/state');
-const {
-  listenForPayout,
-  createPayoutData,
-  resetOrders,
-} = require('./lib/payoutListener');
-const { destroyLog } = require('./lib/logger');
-const { default: axios } = require('axios');
+const { listenForPayout, resetOrders } = require('./lib/payoutListener');
 
 dotenv.config();
 
@@ -176,7 +170,9 @@ db.connection
             },
           });
 
-          await listenForPayout(orders);
+          if (orders && orders.length) {
+            await listenForPayout(orders);
+          }
         } catch (e) {
           console.log(e);
         }
