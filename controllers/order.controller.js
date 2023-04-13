@@ -432,21 +432,19 @@ class OrderController {
       sessionInfo,
       req,
     });
-
+    const { all } = req.query;
     try {
       const now = new Date();
       const sevenDaysLater = new Date();
       sevenDaysLater.setDate(now.getDate() + 7);
-
+      const and = [
+        { execute_date: { [db.Op.gte]: now } },
+        { order_complete: false },
+        { smart_contract: true },
+      ];
+      if (!all) and.push({ execute_date: { [db.Op.lt]: sevenDaysLater } });
       let orders = await db.models.Order.findAll({
-        where: {
-          [db.Op.and]: [
-            { execute_date: { [db.Op.gte]: now } },
-            { execute_date: { [db.Op.lt]: sevenDaysLater } },
-            { order_complete: false },
-            { smart_contract: true },
-          ],
-        },
+        where: { [db.Op.and]: and },
       });
       const web3 = new Web3(infuraRpc);
       const end_index_price = await getCurrentPrice();
@@ -537,13 +535,14 @@ class OrderController {
     try {
       for (const order of orders) {
         let payout_usdc, payout_eth;
+        // TODO decimals
         if (order.payout_currency === 'ETH') {
-          payout_usdc = order.payout * order.end_index_price;
-          payout_eth = order.payout;
+          payout_usdc = (order.payout * order.end_index_price).toFixed(6);
+          payout_eth = parseFloat(order.payout).toFixed(18);
         }
         if (order.payout_currency === 'USDC') {
-          payout_usdc = order.payout;
-          payout_eth = order.payout / order.end_index_price;
+          payout_usdc = parseFloat(order.payout).toFixed(6);
+          payout_eth = (order.payout / order.end_index_price).toFixed(18);
         }
         await db.models.Order.update(
           {

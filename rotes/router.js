@@ -12,6 +12,7 @@ const configController = require('../controllers/config.controller');
 const chatController = require('../controllers/chat.controller');
 const statsController = require('../controllers/stats.controller');
 const userController = require('../controllers/user.controller');
+const airdropController = require('../controllers/airdrop.controller');
 const referralPayoutController = require('../controllers/referralPayout.controller');
 
 router.get('/dates', dateController.getDates);
@@ -49,6 +50,11 @@ router.post('/utm', userController.addUtm);
 
 router.get('/subscribtion/:address', userController.getSubscription);
 router.post('/subscribtion/:address', userController.postSubscription);
+
+router.get('/airdrop', airdropController.getAirdrop);
+router.get('/airdrop/:address', airdropController.getAirdropParticipant);
+router.post('/airdrop/:address', airdropController.addParticipantToAirdrop);
+router.put('/airdrop/:address', airdropController.updateAirdropParticipant);
 
 router.get('/referral_payout_crud', referralPayoutController.getReferralPayout);
 router.put(

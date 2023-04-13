@@ -156,7 +156,7 @@ db.connection
         }
       }, 10000);
 
-      // resetOrders();
+      resetOrders();
       // ! auto order complete
       setInterval(async () => {
         try {

@@ -121,11 +121,22 @@ class UserController {
     });
     const { address } = req.params;
     try {
-      const subscription = await db.models.UserSubscription.findOne({
+      let subscription = await db.models.UserSubscription.findOne({
         where: {
           address: address.toLowerCase(),
         },
       });
+
+      // TODO
+      if (!subscription) {
+        subscription = {
+          address,
+          email: '',
+          notifications: null,
+          transaction_notifications: null,
+          news: null,
+        };
+      }
 
       updateLog(logId, { status: 'success' });
       res.json({
@@ -155,7 +166,7 @@ class UserController {
     });
     const { address } = req.params;
     const { subsctiptions, email } = req.body;
-    const { news, order } = subsctiptions;
+    const { news, transaction_notifications } = subsctiptions;
     try {
       let subscription = await db.models.UserSubscription.findOne({
         where: {
@@ -170,7 +181,7 @@ class UserController {
       }
 
       await db.models.UserSubscription.update(
-        { news, order, email },
+        { news, transaction_notifications, email },
         { where: { address: address.toLowerCase() } }
       );
 
