@@ -182,7 +182,11 @@ class AirdropController {
     address = address.toLowerCase();
     const { airdrop_id } = req.body;
     try {
-      const airdrop_participants = await getAirdropParticipants({ airdrop_id });
+      const airdrop_participants = await getAirdropParticipants({
+        airdrop_id,
+        deal_made: true,
+        link_shared: true,
+      });
       const airdrop = await getAirdrop({ id: airdrop_id, active: true });
       let airdrop_participant = await getAirdropParticipant({
         airdrop_id,
