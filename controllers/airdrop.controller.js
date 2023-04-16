@@ -1,7 +1,7 @@
 const db = require('../database');
 const { writeLog, updateLog } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
-const { parseError } = require('../lib/lib');
+const { parseError, getDaysDifference } = require('../lib/lib');
 
 const isValidAirdrop = async (airdrop, airdrop_participants) => {
   try {
@@ -16,16 +16,60 @@ const isValidAirdrop = async (airdrop, airdrop_participants) => {
   }
 };
 
-const isDealMade = async (address) => {
-  const users_order = await db.models.Order.findOne({
+const areDealsMade = async (address) => {
+  const user_orders = await db.models.Order.findAll({
     where: {
       from: address.toLowerCase(),
     },
+    order: [['id', 'ASC']],
   });
-  if (users_order) {
-    return true;
+
+  let threeInARow = false;
+  let lastOrder = null;
+
+  var now = new Date();
+  var fullDaysSinceEpoch = Math.floor(now / 8.64e7);
+  let dayForTimeLine = [];
+  for (const order of user_orders) {
+    const date = new Date(order.createdAt);
+    var dayIndex = fullDaysSinceEpoch - Math.floor(date / 8.64e7);
+    const orderDays = getDaysDifference(order.createdAt, order.execute_date);
+    dayForTimeLine.push({ dayIndex, orderDays });
+    lastOrder = order;
   }
-  return false;
+  dayForTimeLine.reverse();
+
+  let timeLine = [];
+  if (!dayForTimeLine[dayForTimeLine.length - 1]) return false;
+  const maxDays = dayForTimeLine[dayForTimeLine.length - 1].dayIndex + 1;
+  for (let i = 0; i < maxDays; i++) timeLine[i] = 0;
+  for (const item of dayForTimeLine) {
+    let iLength = item.orderDays;
+    for (let i = 0; i < iLength; i++) {
+      if (item.dayIndex - i >= 0) {
+        timeLine[item.dayIndex - i]++;
+      }
+    }
+  }
+  const maxDaysDiference = 7;
+  const needOrderDuration = 7 * 3;
+  let daysDiference = 0;
+  let orderDuration = 0;
+  let status = false;
+  for (const timeItem of timeLine) {
+    if (timeItem) {
+      orderDuration++;
+      daysDiference = 0;
+    } else {
+      daysDiference++;
+    }
+    if (orderDuration >= needOrderDuration) {
+      status = true;
+      break;
+    }
+  }
+  if (status && dayForTimeLine.length < 3) status = false;
+  return status;
 };
 
 const updateAirdropParticipant = async (data, where) => {
@@ -145,7 +189,7 @@ class AirdropController {
         address,
       });
 
-      const deal_made = await isDealMade(address);
+      const deal_made = await areDealsMade(address);
       const serial_number = await getSerialNumber(address);
       airdrop_participant = await updateAirdropParticipant(
         { deal_made, serial_number },
@@ -194,7 +238,7 @@ class AirdropController {
       });
 
       await isValidAirdrop(airdrop, airdrop_participants);
-      const deal_made = await isDealMade(address);
+      const deal_made = await areDealsMade(address);
       const serial_number = await getSerialNumber(address);
 
       if (!airdrop_participant) {
