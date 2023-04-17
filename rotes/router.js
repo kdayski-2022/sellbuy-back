@@ -14,6 +14,7 @@ const statsController = require('../controllers/stats.controller');
 const userController = require('../controllers/user.controller');
 const airdropController = require('../controllers/airdrop.controller');
 const referralPayoutController = require('../controllers/referralPayout.controller');
+const emailController = require('../controllers/email.controller');
 
 router.get('/dates', dateController.getDates);
 
@@ -74,5 +75,8 @@ router.get(
 
 router.get('/web/statistics', statsController.getWebStatistics);
 router.get('/admin/statistics', statsController.getAdminStatistics);
+
+router.post('/email/expiration', emailController.sendMailingList);
+router.post('/email/:address', emailController.sendPersonalEmail);
 
 module.exports = router;

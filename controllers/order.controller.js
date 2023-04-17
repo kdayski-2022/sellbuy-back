@@ -322,6 +322,7 @@ class OrderController {
         telegram.send(
           `Order was made by user ${address}\n${data?.result?.order?.instrument_name}`
         );
+
         const orders = await db.models.Order.findAll({
           where: { from: address.toLowerCase() },
         });
