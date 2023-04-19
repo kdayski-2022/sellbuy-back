@@ -40,7 +40,8 @@ class EmailController {
       if (orders && orders.length) {
         const subject = getSubject(type);
         for (const order of orders) {
-          const html = parseTransactionDetails(order, transactionHash);
+          let html = parseTransactionDetails(order, transactionHash)
+          html = 'Your TYMIO transaction is settled, please find details below.<br>' + html
           const res = await sendMail(
             [order.subscription.email],
             subject,
