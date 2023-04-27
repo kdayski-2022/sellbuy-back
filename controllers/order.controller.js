@@ -601,7 +601,7 @@ class OrderController {
           });
 
           const totalEarned = userCompleteOrders
-            .map(({ payout_usdc }) => (payout_usdc ? payout_usdc : 0))
+            .map(({ recieve }) => (recieve ? recieve : 0))
             .reduce((a, b) => a + b, 0);
 
           const subscription = await db.models.UserSubscription.findOne({

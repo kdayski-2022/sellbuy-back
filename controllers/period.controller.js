@@ -91,8 +91,6 @@ class PeriodController {
             },
           ];
           const result = [];
-          // const transfer = new Transfer();
-          // await transfer.init();
 
           const filteredTypes = apiRes.data.result.filter((item) => {
             const typesArray = item.instrument_name.split('-');
