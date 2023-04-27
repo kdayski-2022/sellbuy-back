@@ -4,6 +4,7 @@ const {
   getValidDays,
   getTimestamp,
 } = require('../lib/dates');
+const db = require('../database');
 const axios = require('axios');
 const dotenv = require('dotenv');
 const { writeLog, updateLog } = require('../lib/logger');
@@ -12,6 +13,8 @@ const { parseError } = require('../lib/lib');
 const Web3 = require('web3');
 const ERC20Abi = require('../abi/ERC20.json');
 const Transfer = require('../lib/transfer');
+const { USER_COMMISSION } = require('../config/constants.json');
+const { getApr } = require('../lib/utils');
 dotenv.config();
 const apiUrl = process.env.API_URL;
 const infuraRpc = process.env.INFURA_RPC;
@@ -154,16 +157,22 @@ class PeriodController {
                 )
                 .reverse()[0];
               const { estimated_delivery_price, bid_price } = maxBidPriceObj;
+              const user = await db.models.User.findOne({
+                where: { address: sessionInfo.userAddress.toLowerCase() },
+              });
+              let commission = USER_COMMISSION;
+              if (user) commission = user.commission;
               const recieve =
-                estimated_delivery_price * bid_price * amount * 0.7;
-              const recieveForEach =
-                estimated_delivery_price * bid_price * 1 * 0.7;
-              const percentForEach = (recieveForEach / price) * 100;
+                estimated_delivery_price * bid_price * amount * commission;
               const percent = (recieve / price) * 100;
               const days = getDaysDifference(timestamp);
-              const apr =
-                Math.round(parseFloat((percentForEach / days) * 365) * 100) /
-                100;
+              const apr = getApr(
+                estimated_delivery_price,
+                bid_price,
+                price,
+                commission,
+                days
+              );
               const earnPercent =
                 Math.round((recieve / (amount * price)) * 100 * 100) / 100;
               if (!Math.floor(recieve))
@@ -192,6 +201,7 @@ class PeriodController {
           updateLog(logId, { status: 'success' });
           res.json({ success: true, data: { periods: result }, sessionInfo });
         } catch (e) {
+          console.log(e);
           updateLog(logId, { status: 'failed', error: parseError(e) });
           res.json({
             success: false,

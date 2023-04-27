@@ -16,11 +16,18 @@ const { getAccessToken } = require('../lib/auth');
 const { writeLog, updateLog } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
 const { parseError } = require('../lib/lib');
-const { COMMISSION } = require('../config/constants.json');
-const { calculatePayouts, getPayin } = require('../lib/order');
+const { USER_COMMISSION } = require('../config/constants.json');
+const {
+  calculatePayouts,
+  getPayin,
+  getContractText,
+  getContractHtml,
+} = require('../lib/order');
+const { getSubject, getDealExpirationBody, sendMail } = require('../lib/email');
 dotenv.config();
 const apiUrl = process.env.API_URL;
 const infuraRpc = process.env.INFURA_RPC;
+const dbEnv = process.env.DB_ENV;
 
 const getCurrentPrice = async () => {
   try {
@@ -54,8 +61,9 @@ const setExtraFields = async (orders) => {
           if (payout_currency === 'ETH') payout_calculation_eth = ETHToPay;
 
           const app_revenue =
-            Math.round((order.recieve / (1 - COMMISSION)) * COMMISSION * 100) /
-            100;
+            Math.round(
+              (order.recieve / order.commission) * (1 - order.commission) * 100
+            ) / 100;
 
           order.payout_calculation_usdc = payout_calculation_usdc;
           order.payout_calculation_eth = payout_calculation_eth;
@@ -165,7 +173,7 @@ class OrderController {
       .get(
         `${apiUrl}/public/get_book_summary_by_currency?currency=ETH&kind=option`
       )
-      .then((apiRes) => {
+      .then(async (apiRes) => {
         try {
           const { period, price, amount } = req.query;
           const direction = req.headers['direction-type'];
@@ -214,18 +222,34 @@ class OrderController {
             )
             .reverse()[0];
           const { estimated_delivery_price, bid_price } = maxBidPriceObj;
+          const user = await db.models.User.findOne({
+            where: { address: sessionInfo.userAddress.toLowerCase() },
+          });
+          let commission = USER_COMMISSION;
+          if (user) commission = user.commission;
           const recieve =
-            estimated_delivery_price * bid_price * Number(amount) * 0.7;
+            estimated_delivery_price * bid_price * Number(amount) * commission;
+          const start_index_price = await getCurrentPrice();
+          const order = {
+            ...maxBidPriceObj,
+            recieve,
+            amount: Number(amount),
+            price: Number(price),
+            period: Number(period),
+            execute_date: new Date(Number(period)),
+            start_index_price,
+            direction,
+          };
+          const contract_html = getContractHtml(order);
+          const contract_text = getContractText(order);
 
           updateLog(logId, { status: 'success' });
           res.json({
             success: true,
             data: {
-              ...maxBidPriceObj,
-              recieve,
-              amount: Number(amount),
-              price: Number(price),
-              period: Number(period),
+              ...order,
+              contract_html,
+              contract_text,
             },
             sessionInfo,
           });
@@ -264,10 +288,16 @@ class OrderController {
           );
       const web3 = new Web3(infuraRpc);
 
+      const user = await db.models.User.findOne({
+        where: { address: address.toLowerCase() },
+      });
+      let commission = USER_COMMISSION;
+      if (user) commission = user.commission;
+
       const transactionReceipt = await web3.eth.getTransactionReceipt(hash);
       const status = transactionReceipt && transactionReceipt.status;
       const recieve =
-        estimated_delivery_price * bid_price * Number(amount) * 0.7;
+        estimated_delivery_price * bid_price * Number(amount) * commission;
 
       // post order
       if (status) {
@@ -556,6 +586,47 @@ class OrderController {
           },
           { where: { id: order.id } }
         );
+
+        try {
+          const orderDB = await db.models.Order.findOne({
+            where: { order_id: order.order_id },
+          });
+
+          const userCompleteOrders = await db.models.Order.findAll({
+            where: {
+              from: orderDB.from.toLowerCase(),
+              status: 'approved',
+              order_complete: true,
+            },
+          });
+
+          const totalEarned = userCompleteOrders
+            .map(({ payout_usdc }) => (payout_usdc ? payout_usdc : 0))
+            .reduce((a, b) => a + b, 0);
+
+          const subscription = await db.models.UserSubscription.findOne({
+            where: {
+              address: orderDB.from.toLowerCase(),
+              transaction_notifications: true,
+            },
+          });
+
+          if (subscription) {
+            orderDB.subscription = subscription;
+            orderDB.total = {
+              earned: totalEarned,
+              orders: userCompleteOrders.length,
+            };
+            if (dbEnv === 'development')
+              orderDB.subscription.email = 'npoqpu2010@mail.ru';
+            const subject = getSubject('transaction_notifications');
+            const html = getDealExpirationBody(orderDB);
+            await sendMail([orderDB.subscription.email], subject, '', html);
+          }
+        } catch (e) {
+          console.log(e);
+          console.log('Send email error');
+        }
       }
       res.json({
         success: true,

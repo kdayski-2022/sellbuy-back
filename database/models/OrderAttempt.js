@@ -6,6 +6,7 @@ module.exports = {
   period: DataTypes.DATE,
   address: DataTypes.STRING,
   direction: DataTypes.STRING,
+  contract_text: DataTypes.TEXT,
 
   payment_complete: {
     type: DataTypes.BOOLEAN,

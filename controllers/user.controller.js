@@ -3,7 +3,6 @@ const db = require('../database');
 const { writeLog, updateLog, getUserData } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
 const { parseError } = require('../lib/lib');
-const { COMMISSION } = require('../config/constants.json');
 const REF_FEE = process.env.REF_FEE;
 
 const generateRef = async () => {
@@ -98,7 +97,8 @@ const getRefTable = async (orders, ref_fee) => {
   for (const order of orders) {
     if (order && order.order_complete && order.status === 'approved') {
       const address = order.from;
-      const appRevenue = (order.recieve / (1 - COMMISSION)) * COMMISSION;
+      const appRevenue =
+        (order.recieve / order.commission) * (1 - order.commission);
       const earn = (appRevenue / 100) * Number(ref_fee);
       refTable.push({
         address,

@@ -1,11 +1,7 @@
 const db = require('../database');
 const { writeLog, updateLog } = require('../lib/logger');
 const { parseError } = require('../lib/lib');
-const {
-  sendMail,
-  parseTransactionDetails,
-  getSubject,
-} = require('../lib/email');
+const { sendMail, getDealExpirationBody, getSubject } = require('../lib/email');
 
 class EmailController {
   async sendMailingList(req, res) {
@@ -40,14 +36,11 @@ class EmailController {
       if (orders && orders.length) {
         const subject = getSubject(type);
         for (const order of orders) {
-          let html = parseTransactionDetails(order, transactionHash)
-          html = 'Your TYMIO transaction is settled, please find details below.<br>' + html
-          const res = await sendMail(
-            [order.subscription.email],
-            subject,
-            '',
-            html
-          );
+          const html = getDealExpirationBody({
+            ...order,
+            payout_tx: transactionHash,
+          });
+          await sendMail([order.subscription.email], subject, '', html);
         }
       }
 

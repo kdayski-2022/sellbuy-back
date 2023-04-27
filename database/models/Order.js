@@ -23,10 +23,12 @@ module.exports = {
   payout_usdc: DataTypes.FLOAT,
   payout_tx: DataTypes.STRING,
   direction: DataTypes.STRING,
+  contract_text: DataTypes.TEXT,
   smart_contract: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: true,
   },
   autopay: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  commission: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0.7 },
 };

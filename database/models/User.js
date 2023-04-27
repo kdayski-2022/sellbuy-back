@@ -6,4 +6,5 @@ module.exports = {
   ref_user_id: DataTypes.INTEGER,
   ref_fee: DataTypes.INTEGER,
   nick_name: DataTypes.STRING,
+  commission: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0.7 },
 };

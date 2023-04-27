@@ -1,0 +1,1 @@
+DROP TABLE "Auths", "BalanceHistories", "Chats", "ErrorLogs", "Logs", "ManagerLogs", "ManagerSessions", "Managers", "Messages", "OrderAttempts", "ReferralPayouts", "Supports", "UserSessions", "UserSubscriptions", "Users", "Utms" CASCADE;

@@ -34,7 +34,8 @@ class ReferralPayoutController {
       const order = await db.models.Order.findOne({
         where: { id: referralPayout.order_id },
       });
-      const appRevenue = (order.recieve / (1 - COMMISSION)) * COMMISSION;
+      const appRevenue =
+        (order.recieve / order.commission) * (1 - order.commission);
       const earn = (appRevenue / 100) * Number(ref_fee);
       referralPayout.app_revenue = appRevenue;
       referralPayout.earn = earn;
