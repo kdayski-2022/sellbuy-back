@@ -15,6 +15,7 @@ const { Socket } = require('./socket');
 const { postOrder } = require('./lib/order');
 const { checkState } = require('./lib/state');
 const { listenForPayout, resetOrders } = require('./lib/payoutListener');
+const { formatTime, formatDate } = require('./lib/dates');
 
 dotenv.config();
 
