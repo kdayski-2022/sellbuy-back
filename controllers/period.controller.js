@@ -154,7 +154,8 @@ class PeriodController {
                     : 0
                 )
                 .reverse()[0];
-              const { estimated_delivery_price, bid_price } = maxBidPriceObj;
+              const { estimated_delivery_price, bid_price, underlying_index } =
+                maxBidPriceObj;
               const user = await db.models.User.findOne({
                 where: { address: sessionInfo.userAddress.toLowerCase() },
               });
@@ -181,13 +182,20 @@ class PeriodController {
                   percent: null,
                   error: "Order wasn't found",
                 });
+
+              const futureTimestamp = new Date(
+                Date.parse(underlying_index.split('-')[1])
+              ).getTime();
               result.push({
-                title,
-                timestamp,
+                title: `${getDaysDifference(futureTimestamp)} days`,
+                timestamp: futureTimestamp,
+                days: getDaysDifference(futureTimestamp),
+                // title,
+                // timestamp,
+                // days,
                 recieve,
                 percent,
                 apr,
-                days,
                 price,
                 amount,
                 earnPercent,

@@ -16,6 +16,7 @@ const { postOrder } = require('./lib/order');
 const { checkState } = require('./lib/state');
 const { listenForPayout, resetOrders } = require('./lib/payoutListener');
 const { formatTime, formatDate } = require('./lib/dates');
+const { default: axios } = require('axios');
 
 dotenv.config();
 
@@ -157,6 +158,27 @@ db.connection
         }
       }, 10000);
 
+      // const orders = await db.models.Order.findAll({
+      //   where: { status: 'pending_approve' },
+      // });
+      // try {
+      //   const res = await axios.post(
+      //     'http://dev.fanil.ru:5111/api/expiration',
+      //     {
+      //       orders,
+      //       tx: '0x022b935c8ae6e92ca72903d73e2ef48e573d83cd037cfc25aec927105d3c274c',
+      //     },
+      //     {
+      //       headers: {
+      //         Accept: 'application/json',
+      //         'Content-Type': 'application/json',
+      //       },
+      //     }
+      //   );
+      //   console.log(res);
+      // } catch (e) {
+      //   console.log(e);
+      // }
       // resetOrders();
       // ! auto order complete
       setInterval(async () => {
