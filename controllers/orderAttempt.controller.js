@@ -4,6 +4,7 @@ const { writeLog, updateLog } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
 const { parseError } = require('../lib/lib');
 const { checkState } = require('../lib/state');
+const { CHAIN_NAMES } = require('../config/network');
 dotenv.config();
 
 class OrderAttemptController {
@@ -20,7 +21,11 @@ class OrderAttemptController {
     let state = {};
     let id;
     try {
-      telegram.send(`${address}\nOrder creation attempt has registered`);
+      telegram.send(
+        `${address}\nOrder creation attempt has registered on chain ${
+          CHAIN_NAMES[req.body.chain_id]
+        }`
+      );
       state = await checkState(req.body);
       const orderAttempt = await db.models.OrderAttempt.create({
         ...req.body,
