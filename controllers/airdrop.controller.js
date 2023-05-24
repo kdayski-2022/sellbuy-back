@@ -37,7 +37,7 @@ const areDealsMade = async (address) => {
     dayForTimeLine.push({ dayIndex, orderDays });
     lastOrder = order;
   }
-  dayForTimeLine.reverse();
+  dayForTimeLine.sort((a, b) => a.dayIndex - b.dayIndex);
 
   let timeLine = [];
   if (!dayForTimeLine[dayForTimeLine.length - 1]) return false;

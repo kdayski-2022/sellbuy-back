@@ -7,7 +7,6 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const db = require('./database');
 const model = require('./lib/modelWrapper')(db.models);
-const Transfer = require('./lib/transfer');
 const Web3 = require('web3');
 const crud = require('./lib/express-crud');
 
@@ -17,17 +16,17 @@ const { checkState } = require('./lib/state');
 const { listenForPayout, resetOrders } = require('./lib/payoutListener');
 const { formatTime, formatDate } = require('./lib/dates');
 const { default: axios } = require('axios');
+const { INFURA_PROVIDERS } = require('./config/infura');
 
 dotenv.config();
 
-const infuraRpc = process.env.INFURA_RPC;
 const AUTOPAY_INTERVAL = process.env.AUTOPAY_INTERVAL;
+const DB_ENV = process.env.DB_ENV;
+
 const PORT = process.env.PORT || 8080;
 
-const web3 = new Web3(infuraRpc);
+let web3 = new Web3(INFURA_PROVIDERS[DB_ENV === 'production' ? 1 : 80001]);
 
-const transfer = new Transfer();
-transfer.init();
 const app = express();
 crud(app);
 app.use(cors());
@@ -115,7 +114,13 @@ db.connection
 
           orderAttempts.forEach(async ({ id, ...data }) => {
             if (data && data.instrument_name) {
-              const { order_id, error } = await postOrder(data);
+              let order_hedged = data.order_hedged;
+              if (data.amount < 1) order_hedged = true;
+              let { order_id, error } = await postOrder({
+                ...data,
+                order_hedged,
+              });
+              if (data.amount < 1) order_id = 'hedging';
               const state = await checkState({ ...data, id, order_id, error });
               await db.models.OrderAttempt.update(
                 { ...state, order_id, error },
@@ -140,19 +145,26 @@ db.connection
             },
           });
 
-          orders.forEach(async ({ user_payment_tx_hash, order_id }) => {
-            if (user_payment_tx_hash && order_id) {
-              const { status } = await web3.eth.getTransactionReceipt(
-                user_payment_tx_hash
-              );
-              if (status) {
-                await db.models.Order.update(
-                  { payment_complete: true },
-                  { where: { order_id } }
+          let lastChainId = 1;
+          orders.forEach(
+            async ({ user_payment_tx_hash, order_id, chain_id }) => {
+              if (user_payment_tx_hash && order_id) {
+                if (lastChainId !== chain_id) {
+                  lastChainId = chain_id;
+                  web3 = new Web3(INFURA_PROVIDERS[chain_id]);
+                }
+                const { status } = await web3.eth.getTransactionReceipt(
+                  user_payment_tx_hash
                 );
+                if (status) {
+                  await db.models.Order.update(
+                    { payment_complete: true },
+                    { where: { order_id } }
+                  );
+                }
               }
             }
-          });
+          );
         } catch (e) {
           console.log(e);
         }

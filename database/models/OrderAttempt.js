@@ -20,6 +20,11 @@ module.exports = {
     allowNull: false,
     defaultValue: false,
   },
+  order_hedged: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
   referral_registration: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
@@ -39,4 +44,5 @@ module.exports = {
   bid_price: DataTypes.FLOAT,
 
   error: DataTypes.TEXT,
+  chain_id: DataTypes.INTEGER,
 };

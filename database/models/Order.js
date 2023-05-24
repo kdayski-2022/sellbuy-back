@@ -29,6 +29,12 @@ module.exports = {
     allowNull: false,
     defaultValue: true,
   },
+  order_hedged: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
   autopay: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
   commission: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0.7 },
+  chain_id: DataTypes.INTEGER,
 };

@@ -1,10 +1,9 @@
-const dotenv = require('dotenv');
 const { writeLog, updateLog } = require('../lib/logger');
 const { parseError } = require('../lib/lib');
-
+const dotenv = require('dotenv');
+const { getConfigByEnv } = require('../lib/config');
 dotenv.config();
-const SERVICE_WALLET_ADDRESS = process.env.SERVICE_WALLET_ADDRESS;
-const PAYOUT_CONTRACT_ADDRESS = process.env.PAYOUT_CONTRACT_ADDRESS;
+const DB_ENV = process.env.DB_ENV;
 
 const Config = {
   getConfig: async (req, res) => {
@@ -14,11 +13,13 @@ const Config = {
       sessionInfo: {},
       req,
     });
+
     try {
       updateLog(logId, { status: 'success' });
+      const config = getConfigByEnv(DB_ENV);
       res.json({
         success: true,
-        config: { SERVICE_WALLET_ADDRESS, PAYOUT_CONTRACT_ADDRESS },
+        config,
       });
     } catch (e) {
       updateLog(logId, { status: 'failed', error: parseError(e) });

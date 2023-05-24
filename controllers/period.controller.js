@@ -17,8 +17,6 @@ const { USER_COMMISSION } = require('../config/constants.json');
 const { getApr } = require('../lib/utils');
 dotenv.config();
 const apiUrl = process.env.API_URL;
-const infuraRpc = process.env.INFURA_RPC;
-const WITHDRAWAL_TOKEN_ADDRESS = process.env.WITHDRAWAL_TOKEN_ADDRESS;
 
 class PeriodController {
   async getPeriods(req, res) {
@@ -185,14 +183,12 @@ class PeriodController {
 
               const futureTimestamp = new Date(
                 Date.parse(underlying_index.split('-')[1])
-              ).getTime();
+              ).setHours(11, 0, 10, 0);
+
               result.push({
                 title: `${getDaysDifference(futureTimestamp)} days`,
                 timestamp: futureTimestamp,
                 days: getDaysDifference(futureTimestamp),
-                // title,
-                // timestamp,
-                // days,
                 recieve,
                 percent,
                 apr,

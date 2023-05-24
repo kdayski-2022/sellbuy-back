@@ -24,9 +24,9 @@ const {
   getContractHtml,
 } = require('../lib/order');
 const { getSubject, getDealExpirationBody, sendMail } = require('../lib/email');
+const { INFURA_PROVIDERS } = require('../config/infura');
 dotenv.config();
 const apiUrl = process.env.API_URL;
-const infuraRpc = process.env.INFURA_RPC;
 const dbEnv = process.env.DB_ENV;
 
 const getCurrentPrice = async () => {
@@ -139,8 +139,11 @@ class OrderController {
       execute_date,
       order_executed,
       order_complete,
+      chain_id,
     } = req.query;
-    const where = order_complete ? { order_complete } : {};
+
+    let where = order_complete ? { order_complete } : {};
+    where = chain_id ? { ...where, chain_id } : where;
     let orders = await db.models.Order.findAndCountAll({
       where,
       offset: _start,
@@ -273,7 +276,8 @@ class OrderController {
       sessionInfo,
       req,
     });
-    const { amount, price, period, orderData, address, hash } = req.body;
+    const { amount, price, period, orderData, address, hash, chain_id } =
+      req.body;
     const direction = req.headers['direction-type'];
     const { instrument_name, estimated_delivery_price, bid_price } = orderData;
     const postData = direction === 'sell' ? sell_data : buy_data;
@@ -286,7 +290,7 @@ class OrderController {
         : telegram.send(
             `User ${address} deposited ${Number(amount) * Number(price)} USDC`
           );
-      const web3 = new Web3(infuraRpc);
+      const web3 = new Web3(INFURA_PROVIDERS[chain_id]);
 
       const user = await db.models.User.findOne({
         where: { address: address.toLowerCase() },
@@ -477,9 +481,15 @@ class OrderController {
       let orders = await db.models.Order.findAll({
         where: { [db.Op.and]: and },
       });
-      const web3 = new Web3(infuraRpc);
+      let lastChainId = 1;
+      let web3 = new Web3(INFURA_PROVIDERS[dbEnv === 'production' ? 1 : 80001]);
       const end_index_price = await getCurrentPrice();
       for (const order of orders) {
+        if (order.chain_id !== lastChainId) {
+          lastChainId = order.chain_id;
+
+          web3 = new Web3(INFURA_PROVIDERS[order.chain_id]);
+        }
         const { ETHToPay, USDCToPay, payout_currency, order_executed } =
           await calculatePayouts({ ...order, end_index_price });
         if (payout_currency === 'USDC') {
@@ -514,7 +524,7 @@ class OrderController {
       sessionInfo,
       req,
     });
-
+    const { chain_id } = req.query;
     try {
       let orders = await db.models.Order.findAll({
         where: {
@@ -523,11 +533,19 @@ class OrderController {
             { order_complete: false },
             { status: 'pending_approve' },
             { smart_contract: true },
+            { chain_id },
           ],
         },
       });
-      const web3 = new Web3(infuraRpc);
+      let lastChainId = 1;
+      let web3 = await new Web3(
+        INFURA_PROVIDERS[dbEnv === 'production' ? 1 : 80001]
+      );
       for (const order of orders) {
+        if (lastChainId !== order.chain_id) {
+          lastChainId = order.chain_id;
+          web3 = await new Web3(INFURA_PROVIDERS[order.chain_id]);
+        }
         const { ETHToPay, USDCToPay, payout_currency } = await calculatePayouts(
           order
         );
