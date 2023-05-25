@@ -233,7 +233,7 @@ class OrderController {
           const recieve =
             estimated_delivery_price * bid_price * Number(amount) * commission;
           const start_index_price = await getCurrentPrice();
-          const order = {
+          let order = {
             ...maxBidPriceObj,
             recieve,
             amount: Number(amount),
