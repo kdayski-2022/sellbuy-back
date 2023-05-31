@@ -1,7 +1,7 @@
 const CHAIN_LIST = [1, 80001, 42161, 421613];
 
 const CHAIN_NAMES = {
-  1: 'Etherium',
+  1: 'Ethereum',
   80001: 'Mumbai',
   42161: 'Arbitrum',
   421613: 'Arbitrum Goerli',

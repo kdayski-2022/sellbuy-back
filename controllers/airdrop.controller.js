@@ -3,6 +3,27 @@ const { writeLog, updateLog } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
 const { parseError, getDaysDifference } = require('../lib/lib');
 
+const getWeekIndex = (currentDate) => {
+  startDate = new Date(currentDate.getFullYear(), 0, 1);
+  var days = Math.floor((currentDate - startDate) / (24 * 60 * 60 * 1000));
+
+  var weekNumber = Math.ceil(days / 7);
+  return weekNumber;
+};
+const longestSeq = (arr) => {
+  var len = 0,
+    longestLen = -1,
+    prev = null;
+  for (var i = 0; i < arr.length; ++i) {
+    if (prev == null || arr[i] - 1 === prev) ++len;
+    else {
+      if (len > longestLen) longestLen = len;
+      len = 1;
+    }
+  }
+  return longestLen > len ? longestLen : len;
+};
+
 const isValidAirdrop = async (airdrop, airdrop_participants) => {
   try {
     if (!airdrop) {
@@ -24,52 +45,25 @@ const areDealsMade = async (address) => {
     order: [['id', 'ASC']],
   });
 
-  let threeInARow = false;
   let lastOrder = null;
-
-  var now = new Date();
-  var fullDaysSinceEpoch = Math.floor(now / 8.64e7);
-  let dayForTimeLine = [];
+  Date.prototype.addDays = function (days) {
+    var date = new Date(this.valueOf());
+    date.setDate(date.getDate() + days);
+    return date;
+  };
+  let weekTimeline = [];
   for (const order of user_orders) {
-    const date = new Date(order.createdAt);
-    var dayIndex = fullDaysSinceEpoch - Math.floor(date / 8.64e7);
-    const orderDays = getDaysDifference(order.createdAt, order.execute_date);
-    dayForTimeLine.push({ dayIndex, orderDays });
+    const orderDays = getDaysDifference(
+      new Date(order.createdAt),
+      new Date(order.execute_date)
+    );
     lastOrder = order;
+    let orderDate = new Date(order.createdAt);
+    weekTimeline.push(getWeekIndex(orderDate));
+    weekTimeline.push(getWeekIndex(orderDate.addDays(orderDays)));
   }
-  dayForTimeLine.sort((a, b) => a.dayIndex - b.dayIndex);
 
-  let timeLine = [];
-  if (!dayForTimeLine[dayForTimeLine.length - 1]) return false;
-  const maxDays = dayForTimeLine[dayForTimeLine.length - 1].dayIndex + 1;
-  for (let i = 0; i < maxDays; i++) timeLine[i] = 0;
-  for (const item of dayForTimeLine) {
-    let iLength = item.orderDays;
-    for (let i = 0; i < iLength; i++) {
-      if (item.dayIndex - i >= 0) {
-        timeLine[item.dayIndex - i]++;
-      }
-    }
-  }
-  const maxDaysDiference = 7;
-  const needOrderDuration = 7 * 3;
-  let daysDiference = 0;
-  let orderDuration = 0;
-  let status = false;
-  for (const timeItem of timeLine) {
-    if (timeItem) {
-      orderDuration++;
-      daysDiference = 0;
-    } else {
-      daysDiference++;
-    }
-    if (orderDuration >= needOrderDuration) {
-      status = true;
-      break;
-    }
-  }
-  if (status && dayForTimeLine.length < 3) status = false;
-  return status;
+  return longestSeq([...new Set(weekTimeline)]) >= 3;
 };
 
 const updateAirdropParticipant = async (data, where) => {
