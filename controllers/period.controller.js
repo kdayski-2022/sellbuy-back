@@ -107,7 +107,7 @@ class PeriodController {
               if (title === '1 days') return;
               const filteredDates = filteredPrices.filter((item) => {
                 const [_, sortedDataUnderlying_index] =
-                  item.underlying_index.split('-');
+                  item.instrument_name.split('-');
 
                 const targetPeriod = Date.parse(sortedDataUnderlying_index);
                 const daysDifference = getDaysDifference(timestamp);
@@ -152,7 +152,7 @@ class PeriodController {
                     : 0
                 )
                 .reverse()[0];
-              const { estimated_delivery_price, bid_price, underlying_index } =
+              const { estimated_delivery_price, bid_price, instrument_name } =
                 maxBidPriceObj;
               const user = await db.models.User.findOne({
                 where: { address: sessionInfo.userAddress.toLowerCase() },
@@ -182,7 +182,7 @@ class PeriodController {
                 });
 
               const futureTimestamp = new Date(
-                Date.parse(underlying_index.split('-')[1])
+                Date.parse(instrument_name.split('-')[1])
               ).setHours(11, 0, 10, 0);
 
               result.push({

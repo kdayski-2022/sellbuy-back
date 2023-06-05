@@ -35,6 +35,22 @@ const WITHDRAWAL_TOKEN_ADDRESS = {
   421613: '0x5Ad4923d37f6D203d8a452E8936AaD423D3d4ea9',
 };
 
+const INFURA_PROVIDERS = {
+  1: 'https://mainnet.infura.io/v3/facd693a8e764005bf265d603b34a4f9',
+  80001: 'https://polygon-mumbai.infura.io/v3/facd693a8e764005bf265d603b34a4f9',
+  42161:
+    'https://arbitrum-mainnet.infura.io/v3/dbfff08523c14a52b0280dc383126193',
+  421613:
+    'https://arbitrum-goerli.infura.io/v3/dbfff08523c14a52b0280dc383126193',
+};
+
+const BLOCK_EXPLORERS = {
+  1: 'https://etherscan.io',
+  80001: 'https://mumbai.polygonscan.com',
+  42161: 'https://arbiscan.io',
+  421613: 'https://goerli-rollup-explorer.arbitrum.io',
+};
+
 module.exports = {
   CHAIN_LIST,
   SERVICE_WALLET_ADDRESS,
@@ -42,4 +58,6 @@ module.exports = {
   WITHDRAWAL_TOKEN_ADDRESS,
   CHAIN_NAMES,
   CHAIN_GAS_LIMITS,
+  INFURA_PROVIDERS,
+  BLOCK_EXPLORERS,
 };

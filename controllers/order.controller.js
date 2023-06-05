@@ -195,7 +195,7 @@ class OrderController {
 
           const fillteredDates = filteredPrices.filter((item) => {
             const [_, stortedDataUnderlying_index] =
-              item.underlying_index.split('-');
+              item.instrument_name.split('-');
             const targetPeriod = Date.parse(stortedDataUnderlying_index);
             const daysDifference = getDaysDifference(period);
             const validDays = getValidDays(daysDifference, targetPeriod);

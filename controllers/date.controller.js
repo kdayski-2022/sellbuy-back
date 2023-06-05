@@ -22,7 +22,7 @@ class DateController {
       .then((apiRes) => {
         const fillteredDate = apiRes.data.result.filter((item) => {
           const [_, stortedDataUnderlying_index] =
-            item.underlying_index.split('-');
+            item.instrument_name.split('-');
           const date = new Date(Date.parse(stortedDataUnderlying_index));
           return date >= getCurrentDay() && date <= getLastDayOfWeek();
         });
