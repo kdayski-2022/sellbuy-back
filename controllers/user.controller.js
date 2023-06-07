@@ -347,12 +347,13 @@ class UserController {
       sessionInfo,
       req,
     });
-    const { utm } = req.body;
+    const { utm, ref } = req.body;
     const direction = req.headers['direction-type'];
     try {
       const userData = await getUserData(req);
       await db.models.Utm.create({
         utm,
+        ref,
         data: JSON.stringify(userData),
         sessionToken: sessionInfo ? sessionInfo.sessionToken : null,
         direction,
