@@ -14,9 +14,15 @@ const { Socket } = require('./socket');
 const { postOrder } = require('./lib/order');
 const { checkState } = require('./lib/state');
 const { listenForPayout, resetOrders } = require('./lib/payoutListener');
-const { formatTime, formatDate } = require('./lib/dates');
 const { default: axios } = require('axios');
 const { INFURA_PROVIDERS } = require('./config/infura');
+
+const {
+  BLOCK_EXPLORERS,
+  WITHDRAWAL_TOKEN_ADDRESS,
+  CHAIN_TOKENS,
+} = require('./config/network');
+const Eth = require('./lib/etherscan');
 
 dotenv.config();
 
@@ -36,6 +42,7 @@ app.crud('/api/user_crud', model.User);
 app.crud('/api/referral_payout_crud', model.ReferralPayout);
 app.crud('/api/order_crud', model.Order);
 app.crud('/api/log_crud', model.Log);
+app.crud('/api/contract_income', model.ContractIncome);
 
 db.connection
   .sync({ alter: true })
@@ -256,6 +263,118 @@ db.connection
           console.log(e);
         }
       }, 86400000);
+
+      setInterval(async () => {
+        try {
+          // TODO вынести куда-нибудь
+          [1, 42161].forEach(async (chain_id) => {
+            const minute = 60;
+            const hour = minute * 60;
+            const day = hour * 24;
+            const currentBlockNumber = await Eth.getCurrentBlockNumber(
+              chain_id
+            );
+            const startBlock = await Eth.getBlockNumberSecondsAgo(
+              chain_id,
+              currentBlockNumber,
+              minute * 5
+            );
+            const res = await Eth.getServiceTxList(
+              chain_id,
+              startBlock,
+              currentBlockNumber
+            );
+            const allTransactions = [
+              ...res.ethTransactions,
+              ...res.erc20Transactions,
+            ];
+            for (const tx of allTransactions) {
+              if (tx.tokenName) {
+                tx.valueOriginal = await Eth.usdcFromWei(tx.value, chain_id);
+                tx.direction = 'buy';
+                tx.tokenAddress = WITHDRAWAL_TOKEN_ADDRESS[chain_id];
+                tx.chain_id = chain_id;
+              } else {
+                tx.valueOriginal = await Eth.ethFromWei(tx.value, chain_id);
+                tx.direction = 'sell';
+                tx.tokenSymbol = CHAIN_TOKENS[chain_id];
+                tx.tokenAddress = '0x0000000000000000000000000000000000000000';
+                tx.chain_id = chain_id;
+              }
+              await db.models.ContractIncome.create({
+                hash: tx.hash,
+                from: tx.from,
+                amount: tx.valueOriginal,
+                token_address: tx.tokenAddress,
+                token_symbol: tx.tokenSymbol,
+                status: true,
+                chain_id: tx.chain_id,
+              });
+              const contractIncome = await db.models.ContractIncome.findOne({
+                where: {
+                  hash: tx.hash,
+                },
+              });
+              let orderAttempt = await db.models.OrderAttempt.findOne({
+                where: {
+                  hash: tx.hash,
+                },
+              });
+              if (!orderAttempt) {
+                orderAttempt = await db.models.OrderAttempt.findAll({
+                  where: {
+                    [db.Op.and]: [
+                      {
+                        [db.Op.or]: [
+                          { address: tx.from.toLowerCase() },
+                          { address: tx.from },
+                        ],
+                      },
+                      { hash: null },
+                      { direction: tx.direction },
+                      { period: { [db.Op.gt]: new Date() } },
+                    ],
+                  },
+                });
+              }
+              if (orderAttempt && orderAttempt.length) {
+                let validAttempt;
+                for (const attempt of orderAttempt) {
+                  const valid =
+                    tx.direction === 'sell'
+                      ? attempt.amount === Number(tx.valueOriginal)
+                      : attempt.amount ===
+                        Number(tx.valueOriginal) / attempt.price;
+
+                  if (valid) {
+                    validAttempt = attempt;
+                  }
+                }
+                if (validAttempt) {
+                  const exists = await db.models.Order.findOne({
+                    where: {
+                      user_payment_tx_hash: tx.hash,
+                    },
+                  });
+                  if (!exists) {
+                    await db.models.ContractIncome.update(
+                      {
+                        status: false,
+                      },
+                      { where: { hash: contractIncome.hash } }
+                    );
+                    telegram.send(
+                      `${validAttempt.id} Order attempt has not catched hash\n${BLOCK_EXPLORERS[chain_id]}/tx/${tx.hash}`
+                    );
+                  }
+                }
+              }
+            }
+          });
+        } catch (e) {
+          console.log(e);
+        }
+      }, 300000);
     });
   })
   .catch((e) => console.log(e));

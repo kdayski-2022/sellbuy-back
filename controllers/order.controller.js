@@ -467,7 +467,7 @@ class OrderController {
       sessionInfo,
       req,
     });
-    const { all } = req.query;
+    const { all, chain_id } = req.query;
     try {
       const now = new Date();
       const sevenDaysLater = new Date();
@@ -476,6 +476,7 @@ class OrderController {
         { execute_date: { [db.Op.gte]: now } },
         { order_complete: false },
         { smart_contract: true },
+        { chain_id },
       ];
       if (!all) and.push({ execute_date: { [db.Op.lt]: sevenDaysLater } });
       let orders = await db.models.Order.findAll({

@@ -1,5 +1,12 @@
 const CHAIN_LIST = [1, 80001, 42161, 421613];
 
+const CHAIN_TOKENS = {
+  1: 'ETH',
+  80001: 'MATIC',
+  42161: 'ETH',
+  421613: 'ETH',
+};
+
 const CHAIN_NAMES = {
   1: 'Ethereum',
   80001: 'Mumbai',
@@ -51,6 +58,20 @@ const BLOCK_EXPLORERS = {
   421613: 'https://goerli-rollup-explorer.arbitrum.io',
 };
 
+const API_URLS = {
+  1: 'https://api.etherscan.io',
+  80001: 'https://api-testnet.polygonscan.com',
+  42161: 'https://api.arbiscan.io',
+  421613: 'https://api-goerli.arbiscan.io',
+};
+
+const API_KEYS = {
+  1: 'B7B8APXXS198MJ9GEA5S9G32WKTUF9XJAB',
+  80001: '2DB6GJUGAN57R9DBG4586KJGEM11DSUSWF',
+  42161: 'PZAWVZRJXA5AX3MIN9NPC4VATACGXK7YPN',
+  421613: 'PZAWVZRJXA5AX3MIN9NPC4VATACGXK7YPN',
+};
+
 module.exports = {
   CHAIN_LIST,
   SERVICE_WALLET_ADDRESS,
@@ -60,4 +81,7 @@ module.exports = {
   CHAIN_GAS_LIMITS,
   INFURA_PROVIDERS,
   BLOCK_EXPLORERS,
+  API_URLS,
+  API_KEYS,
+  CHAIN_TOKENS,
 };
