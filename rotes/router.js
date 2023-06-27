@@ -29,6 +29,7 @@ router.post('/expiration', orderController.postExpiration);
 
 router.post('/order_state/save', orderAttemptController.postOrderAttempt);
 router.post('/order_state/update', orderAttemptController.updateOrderAttempt);
+router.post('/order_state/get', orderAttemptController.getOrderAttempt);
 
 router.get('/periods', periodController.getPeriods);
 router.get('/periods_price', periodController.getPricePeriods);

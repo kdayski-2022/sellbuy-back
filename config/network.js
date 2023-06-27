@@ -1,5 +1,10 @@
 const CHAIN_LIST = [1, 80001, 42161, 421613];
 
+const CHAIN_LIST_ENV = {
+  production: [1, 42161],
+  development: [80001, 421613],
+};
+
 const CHAIN_TOKENS = {
   1: 'ETH',
   80001: 'MATIC',
@@ -84,4 +89,5 @@ module.exports = {
   API_URLS,
   API_KEYS,
   CHAIN_TOKENS,
+  CHAIN_LIST_ENV,
 };

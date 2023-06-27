@@ -51,7 +51,6 @@ const Session = {
     const logId = await writeLog({
       action: 'getSession',
       status: 'in progress',
-      sessionInfo: {},
       req,
     });
     try {

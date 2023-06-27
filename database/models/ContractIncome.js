@@ -1,6 +1,7 @@
 const DataTypes = require('sequelize');
 
 module.exports = {
+  order_attempt_id: DataTypes.INTEGER,
   hash: DataTypes.STRING,
   from: DataTypes.STRING,
   amount: DataTypes.FLOAT,
