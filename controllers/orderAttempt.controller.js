@@ -130,12 +130,21 @@ class OrderAttemptController {
       const orderAttempt = await db.models.OrderAttempt.findOne({
         where: { id: order.id },
       });
-      if (orderAttempt.all_stages_succeeded) {
+      if (!orderAttempt) {
         const userOrder = await db.models.Order.findOne({
-          where: { user_payment_tx_hash: orderAttempt.hash },
+          where: { user_payment_tx_hash: order.user_payment_tx_hash },
         });
         data = userOrder;
+      } else {
+        if (orderAttempt.all_stages_succeeded) {
+          const userOrder = await db.models.Order.findOne({
+            where: { user_payment_tx_hash: orderAttempt.hash },
+          });
+          data = userOrder;
+        }
       }
+
+      console.log({ orderAttempt, order, data });
       updateLog(logId, { status: 'success' });
       res.json({
         success: true,

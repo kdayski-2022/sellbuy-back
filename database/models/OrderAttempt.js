@@ -4,7 +4,12 @@ module.exports = {
   amount: DataTypes.FLOAT,
   price: DataTypes.INTEGER,
   period: DataTypes.DATE,
-  address: DataTypes.STRING,
+  address: {
+    type: DataTypes.STRING,
+    set(value) {
+      this.setDataValue('address', value.toLowerCase());
+    },
+  },
   direction: DataTypes.STRING,
   contract_text: DataTypes.TEXT,
 
