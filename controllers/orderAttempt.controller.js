@@ -117,12 +117,6 @@ class OrderAttemptController {
 
   async getOrderAttempt(req, res) {
     const sessionInfo = await checkSession(req);
-    const logId = await writeLog({
-      action: 'getOrderAttempt',
-      status: 'in progress',
-      sessionInfo,
-      req,
-    });
     const { order } = req.body;
     let data = order;
 
@@ -143,9 +137,6 @@ class OrderAttemptController {
           data = userOrder;
         }
       }
-
-      console.log({ orderAttempt, order, data });
-      updateLog(logId, { status: 'success' });
       res.json({
         success: true,
         data,
@@ -153,8 +144,6 @@ class OrderAttemptController {
       });
     } catch (e) {
       console.log(e);
-      const error = parseError(e);
-      updateLog(logId, { status: 'failed', error });
       res.json({
         success: false,
         data: null,
