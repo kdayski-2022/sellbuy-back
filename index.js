@@ -21,6 +21,7 @@ const {
   BLOCK_EXPLORERS,
   WITHDRAWAL_TOKEN_ADDRESS,
   CHAIN_TOKENS,
+  CHAIN_LIST_ENV,
 } = require('./config/network');
 const Eth = require('./lib/etherscan');
 
@@ -265,9 +266,9 @@ db.connection
       }, 86400000);
 
       setInterval(async () => {
+        // Попытка привязывается к адресу, количеству и дате
         try {
-          // TODO вынести куда-нибудь
-          [1, 42161].forEach(async (chain_id) => {
+          CHAIN_LIST_ENV[DB_ENV].forEach(async (chain_id) => {
             const minute = 60;
             const hour = minute * 60;
             const day = hour * 24;
@@ -301,20 +302,6 @@ db.connection
                 tx.tokenAddress = '0x0000000000000000000000000000000000000000';
                 tx.chain_id = chain_id;
               }
-              await db.models.ContractIncome.create({
-                hash: tx.hash,
-                from: tx.from,
-                amount: tx.valueOriginal,
-                token_address: tx.tokenAddress,
-                token_symbol: tx.tokenSymbol,
-                status: true,
-                chain_id: tx.chain_id,
-              });
-              const contractIncome = await db.models.ContractIncome.findOne({
-                where: {
-                  hash: tx.hash,
-                },
-              });
               let orderAttempt = await db.models.OrderAttempt.findOne({
                 where: {
                   hash: tx.hash,
@@ -335,6 +322,17 @@ db.connection
                       { period: { [db.Op.gt]: new Date() } },
                     ],
                   },
+                });
+              } else {
+                await db.models.ContractIncome.create({
+                  order_attempt_id: orderAttempt.id,
+                  hash: tx.hash,
+                  from: tx.from,
+                  amount: tx.valueOriginal,
+                  token_address: tx.tokenAddress,
+                  token_symbol: tx.tokenSymbol,
+                  status: true,
+                  chain_id: tx.chain_id,
                 });
               }
               if (orderAttempt && orderAttempt.length) {
@@ -357,12 +355,16 @@ db.connection
                     },
                   });
                   if (!exists) {
-                    await db.models.ContractIncome.update(
-                      {
-                        status: false,
-                      },
-                      { where: { hash: contractIncome.hash } }
-                    );
+                    await db.models.ContractIncome.create({
+                      order_attempt_id: validAttempt.id,
+                      hash: tx.hash,
+                      from: tx.from,
+                      amount: tx.valueOriginal,
+                      token_address: tx.tokenAddress,
+                      token_symbol: tx.tokenSymbol,
+                      status: false,
+                      chain_id: tx.chain_id,
+                    });
                     telegram.send(
                       `${validAttempt.id} Order attempt has not catched hash\n${BLOCK_EXPLORERS[chain_id]}/tx/${tx.hash}`
                     );

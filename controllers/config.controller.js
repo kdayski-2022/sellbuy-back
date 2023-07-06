@@ -10,7 +10,6 @@ const Config = {
     const logId = await writeLog({
       action: 'getConfig',
       status: 'in progress',
-      sessionInfo: {},
       req,
     });
 

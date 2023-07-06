@@ -608,7 +608,7 @@ class OrderController {
 
         try {
           const orderDB = await db.models.Order.findOne({
-            where: { order_id: order.order_id },
+            where: { id: order.id },
           });
 
           const userCompleteOrders = await db.models.Order.findAll({

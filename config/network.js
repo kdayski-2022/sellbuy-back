@@ -1,5 +1,10 @@
 const CHAIN_LIST = [1, 80001, 42161, 421613];
 
+const CHAIN_LIST_ENV = {
+  production: [1, 42161],
+  development: [80001, 421613],
+};
+
 const CHAIN_TOKENS = {
   1: 'ETH',
   80001: 'MATIC',
@@ -17,8 +22,8 @@ const CHAIN_NAMES = {
 const CHAIN_GAS_LIMITS = {
   1: 22000,
   80001: 22000,
-  42161: 400000,
-  421613: 400000,
+  42161: 480000,
+  421613: 480000,
 };
 
 const SERVICE_WALLET_ADDRESS = {
@@ -84,4 +89,5 @@ module.exports = {
   API_URLS,
   API_KEYS,
   CHAIN_TOKENS,
+  CHAIN_LIST_ENV,
 };
