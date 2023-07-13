@@ -1,10 +1,11 @@
+const Web3 = require('web3');
 const dotenv = require('dotenv');
 const db = require('../database');
 const { writeLog, updateLog } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
 const { parseError } = require('../lib/lib');
 const { checkState } = require('../lib/state');
-const { CHAIN_NAMES } = require('../config/network');
+const { CHAIN_NAMES, INFURA_PROVIDERS } = require('../config/network');
 dotenv.config();
 
 class OrderAttemptController {
@@ -121,6 +122,11 @@ class OrderAttemptController {
     let data = order;
 
     try {
+      const web3 = new Web3(INFURA_PROVIDERS[order.chain_id]);
+      const transactionReceipt = await web3.eth.getTransactionReceipt(
+        order.hash
+      );
+
       const orderAttempt = await db.models.OrderAttempt.findOne({
         where: { id: order.id },
       });
@@ -137,6 +143,10 @@ class OrderAttemptController {
           data = userOrder;
         }
       }
+
+      if (!transactionReceipt) order.rejected = true;
+      console.log(transactionReceipt);
+
       res.json({
         success: true,
         data,

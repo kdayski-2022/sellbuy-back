@@ -24,22 +24,29 @@ class ReferralPayoutController {
       order: [[_sort, _order]],
     });
     for (const referralPayout of referralPayouts.rows) {
-      const user = await db.models.User.findOne({
-        where: { address: referralPayout.address },
-      });
-      const parent = await db.models.User.findOne({
-        where: { id: user.ref_user_id },
-      });
-      const ref_fee = parent.ref_fee || REF_FEE || 0;
-      const order = await db.models.Order.findOne({
-        where: { id: referralPayout.order_id },
-      });
-      const appRevenue =
-        (order.recieve / order.commission) * (1 - order.commission);
-      const earn = (appRevenue / 100) * Number(ref_fee);
-      referralPayout.app_revenue = appRevenue;
-      referralPayout.earn = earn;
-      referralPayout.parent = parent.address;
+      try {
+        const user = await db.models.User.findOne({
+          where: { address: referralPayout.address.toLowerCase() },
+        });
+        const parent = await db.models.User.findOne({
+          where: { id: user.ref_user_id },
+        });
+        const ref_fee = parent.ref_fee || REF_FEE || 0;
+        const order = await db.models.Order.findOne({
+          where: { id: referralPayout.order_id },
+        });
+        const appRevenue =
+          (order.recieve / order.commission) * (1 - order.commission);
+        const earn = (appRevenue / 100) * Number(ref_fee);
+        referralPayout.app_revenue = appRevenue;
+        referralPayout.earn = earn;
+        referralPayout.parent = parent.address;
+      } catch (e) {
+        console.log(e);
+        referralPayout.app_revenue = 0;
+        referralPayout.earn = 0;
+        referralPayout.parent = '0x0';
+      }
     }
     referralPayouts.count = referralPayouts.rows.length;
 

@@ -3,6 +3,7 @@ const db = require('../database');
 const { writeLog, updateLog, getUserData } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
 const { parseError } = require('../lib/lib');
+const { getFirstDayOfWeek, getFirstDayOfNextMonth } = require('../lib/dates');
 const REF_FEE = process.env.REF_FEE;
 
 const generateRef = async () => {
@@ -93,6 +94,7 @@ const getOrders = async (referralsPayouts) => {
 
 const getRefTable = async (orders, ref_fee) => {
   ref_fee = ref_fee || REF_FEE || 0;
+  let result = [];
   const refTable = [];
   for (const order of orders) {
     if (order && order.order_complete && order.status === 'approved') {
@@ -102,12 +104,33 @@ const getRefTable = async (orders, ref_fee) => {
       const earn = (appRevenue / 100) * Number(ref_fee);
       refTable.push({
         address,
-        earn: `$${earn.toFixed(2)}`,
-        paid: order.referral_paid,
+        earn,
+        paid: order.referral_paid ? earn : 0,
       });
     }
   }
-  return refTable;
+
+  for (const item of refTable) {
+    const index = result.findIndex(
+      (i) => i.address.toLowerCase() === item.address.toLowerCase()
+    );
+    if (index !== -1) {
+      result[index].earn += item.earn;
+      result[index].paid += item.paid;
+    } else {
+      result.push(item);
+    }
+  }
+
+  const wallets = result.length;
+  const transactions = refTable.length;
+  const totalEarn = result.reduce((acc, obj) => acc + obj.earn, 0);
+  const totalPaid = result.reduce((acc, obj) => acc + obj.paid, 0);
+  const available = totalEarn - totalPaid;
+  const nextUpdate = getFirstDayOfNextMonth();
+  const totals = { wallets, transactions, available, nextUpdate };
+
+  return { refTable: result, totals };
 };
 
 class UserController {
@@ -233,7 +256,7 @@ class UserController {
       });
       const referralsPayouts = await getReferralPayouts(referrals);
       const orders = await getOrders(referralsPayouts);
-      const refTable = await getRefTable(orders, user.ref_fee);
+      const { refTable, totals } = await getRefTable(orders, user.ref_fee);
 
       updateLog(logId, { status: 'success' });
       res.json({
@@ -241,6 +264,7 @@ class UserController {
         data: {
           ref,
           referrals: refTable,
+          totals,
         },
         sessionInfo,
       });

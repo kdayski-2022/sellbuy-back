@@ -7,7 +7,12 @@ module.exports = {
   instrument_name: DataTypes.STRING,
   execute_date: DataTypes.DATE,
   order: DataTypes.TEXT,
-  from: DataTypes.STRING,
+  from: {
+    type: DataTypes.STRING,
+    set(value) {
+      this.setDataValue('from', value.toLowerCase());
+    },
+  },
   order_id: DataTypes.STRING,
   payment_complete: DataTypes.BOOLEAN,
   order_complete: DataTypes.BOOLEAN,

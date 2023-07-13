@@ -57,6 +57,72 @@ db.connection
     app.listen(PORT, async () => {
       console.log(`listen on port ${PORT}`);
 
+      //! убрать дубликаты, созданные из-за замеса с регистрами
+
+      // const Users = await db.models.User.findAll();
+
+      // for (const User of Users) {
+      //   const duplicates = Users.filter(
+      //     (item) => item.address === User.address
+      //   );
+      //   if (duplicates.length > 1) {
+      //     console.log(duplicates);
+      //   }
+      // }
+
+      //! Подтягивание старых выплат по рефералам
+
+      // console.log(await db.models.ReferralPayout.findAll());
+
+      // const ReferralPayouts = await db.models.ReferralPayout.findAll();
+
+      // for (const ReferralPayout of ReferralPayouts) {
+      //   await db.models.ReferralPayout.update(
+      //     { address: ReferralPayout.address.toLowerCase() },
+      //     { where: { id: ReferralPayout.id } }
+      //   );
+      // }
+
+      // const Users = await db.models.User.findAll();
+
+      // for (const User of Users) {
+      //   await db.models.User.update(
+      //     { address: User.address.toLowerCase(), ref_fee: User.ref_fee || 10 },
+      //     { where: { id: User.id } }
+      //   );
+      // }
+
+      // const userOwners = await db.models.User.findAll();
+
+      // for (const userOwner of userOwners) {
+      //   const kids = await db.models.User.findAll({
+      //     where: { ref_user_id: userOwner.id },
+      //   });
+
+      //   for (const kid of kids) {
+      //     const ordersMadeBeingKid = await db.models.Order.findAll({
+      //       where: {
+      //         from: kid.address.toLowerCase(),
+      //         createdAt: { [db.Op.gte]: kid.createdAt },
+      //       },
+      //     });
+      //     for (const order of ordersMadeBeingKid) {
+      //       const catched = await db.models.ReferralPayout.findOne({
+      //         where: { order_id: String(order.id) },
+      //       });
+      //       if (!catched) {
+      //         await db.models.ReferralPayout.create({
+      //           address: kid.address.toLowerCase(),
+      //           order_id: order.id,
+      //           tx_hash: order.user_payment_tx_hash,
+      //           paid: false,
+      //         });
+      //         console.log(order);
+      //       }
+      //     }
+      //   }
+      // }
+
       // ! auto order attempt payment status
       setInterval(async () => {
         try {
