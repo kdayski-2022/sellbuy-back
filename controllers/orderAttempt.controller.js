@@ -122,30 +122,33 @@ class OrderAttemptController {
     let data = order;
 
     try {
-      const web3 = new Web3(INFURA_PROVIDERS[order.chain_id]);
-      const transactionReceipt = await web3.eth.getTransactionReceipt(
-        order.hash
-      );
+      if (!order.hash) data.rejected = true;
 
-      const orderAttempt = await db.models.OrderAttempt.findOne({
-        where: { id: order.id },
-      });
-      if (!orderAttempt) {
-        const userOrder = await db.models.Order.findOne({
-          where: { user_payment_tx_hash: order.user_payment_tx_hash },
+      if (order.hash) {
+        const web3 = new Web3(INFURA_PROVIDERS[order.chain_id]);
+        const transactionReceipt = await web3.eth.getTransactionReceipt(
+          order.hash
+        );
+
+        const orderAttempt = await db.models.OrderAttempt.findOne({
+          where: { id: order.id },
         });
-        data = userOrder;
-      } else {
-        if (orderAttempt.all_stages_succeeded) {
+        if (!orderAttempt) {
           const userOrder = await db.models.Order.findOne({
-            where: { user_payment_tx_hash: orderAttempt.hash },
+            where: { user_payment_tx_hash: order.user_payment_tx_hash },
           });
           data = userOrder;
+        } else {
+          if (orderAttempt.all_stages_succeeded) {
+            const userOrder = await db.models.Order.findOne({
+              where: { user_payment_tx_hash: orderAttempt.hash },
+            });
+            data = userOrder;
+          }
         }
-      }
 
-      if (!transactionReceipt) order.rejected = true;
-      console.log(transactionReceipt);
+        if (!transactionReceipt) data.rejected = true;
+      }
 
       res.json({
         success: true,
