@@ -97,7 +97,7 @@ const getRefTable = async (orders, ref_fee) => {
   let result = [];
   const refTable = [];
   for (const order of orders) {
-    if (order && order.order_complete && order.status === 'approved') {
+    if (order && (order.status === 'approved' || order.status === 'created')) {
       const address = order.from;
       const appRevenue =
         (order.recieve / order.commission) * (1 - order.commission);
@@ -149,8 +149,7 @@ class UserController {
           address: address.toLowerCase(),
         },
       });
-
-      // TODO
+      
       if (!subscription) {
         subscription = {
           address,
@@ -235,8 +234,8 @@ class UserController {
       sessionInfo,
       req,
     });
-    const { address } = req.params;
-
+    let { address } = req.params;
+    address = address.toLowerCase();
     try {
       let ref;
       let user = await db.models.User.findOne({
@@ -327,7 +326,8 @@ class UserController {
       req,
     });
     const { ref_code } = req.params;
-    const { address } = req.body;
+    let { address } = req.body;
+    address = address.toLowerCase();
     try {
       let parent = await db.models.User.findOne({
         where: {

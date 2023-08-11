@@ -57,72 +57,6 @@ db.connection
     app.listen(PORT, async () => {
       console.log(`listen on port ${PORT}`);
 
-      //! убрать дубликаты, созданные из-за замеса с регистрами
-
-      // const Users = await db.models.User.findAll();
-
-      // for (const User of Users) {
-      //   const duplicates = Users.filter(
-      //     (item) => item.address === User.address
-      //   );
-      //   if (duplicates.length > 1) {
-      //     console.log(duplicates);
-      //   }
-      // }
-
-      //! Подтягивание старых выплат по рефералам
-
-      // console.log(await db.models.ReferralPayout.findAll());
-
-      // const ReferralPayouts = await db.models.ReferralPayout.findAll();
-
-      // for (const ReferralPayout of ReferralPayouts) {
-      //   await db.models.ReferralPayout.update(
-      //     { address: ReferralPayout.address.toLowerCase() },
-      //     { where: { id: ReferralPayout.id } }
-      //   );
-      // }
-
-      // const Users = await db.models.User.findAll();
-
-      // for (const User of Users) {
-      //   await db.models.User.update(
-      //     { address: User.address.toLowerCase(), ref_fee: User.ref_fee || 10 },
-      //     { where: { id: User.id } }
-      //   );
-      // }
-
-      // const userOwners = await db.models.User.findAll();
-
-      // for (const userOwner of userOwners) {
-      //   const kids = await db.models.User.findAll({
-      //     where: { ref_user_id: userOwner.id },
-      //   });
-
-      //   for (const kid of kids) {
-      //     const ordersMadeBeingKid = await db.models.Order.findAll({
-      //       where: {
-      //         from: kid.address.toLowerCase(),
-      //         createdAt: { [db.Op.gte]: kid.createdAt },
-      //       },
-      //     });
-      //     for (const order of ordersMadeBeingKid) {
-      //       const catched = await db.models.ReferralPayout.findOne({
-      //         where: { order_id: String(order.id) },
-      //       });
-      //       if (!catched) {
-      //         await db.models.ReferralPayout.create({
-      //           address: kid.address.toLowerCase(),
-      //           order_id: order.id,
-      //           tx_hash: order.user_payment_tx_hash,
-      //           paid: false,
-      //         });
-      //         console.log(order);
-      //       }
-      //     }
-      //   }
-      // }
-
       // ! auto order attempt payment status
       setInterval(async () => {
         try {
@@ -191,6 +125,7 @@ db.connection
               let order_hedged = data.order_hedged;
               if (data.amount < 1) order_hedged = true;
               let { order_id, error } = await postOrder({
+                attempt_id: id,
                 ...data,
                 order_hedged,
               });
@@ -307,24 +242,12 @@ db.connection
               },
             },
           });
-          const orderAttempts = await db.models.OrderAttempt.findAll({
-            where: {
-              createdAt: {
-                [db.Op.lt]: monthAgo,
-              },
-            },
-          });
 
           for (const log of logs) {
             await db.models.Log.destroy({ where: { id: log.id } });
           }
           for (const session of sessions) {
             await db.models.UserSession.destroy({ where: { id: session.id } });
-          }
-          for (const orderAttempt of orderAttempts) {
-            await db.models.OrderAttempt.destroy({
-              where: { id: orderAttempt.id },
-            });
           }
         } catch (e) {
           console.log(e);
@@ -361,12 +284,14 @@ db.connection
                 tx.direction = 'buy';
                 tx.tokenAddress = WITHDRAWAL_TOKEN_ADDRESS[chain_id];
                 tx.chain_id = chain_id;
+                tx.createdAt = new Date(Number(tx.timeStamp) * 1000)
               } else {
                 tx.valueOriginal = await Eth.ethFromWei(tx.value, chain_id);
                 tx.direction = 'sell';
                 tx.tokenSymbol = CHAIN_TOKENS[chain_id];
                 tx.tokenAddress = '0x0000000000000000000000000000000000000000';
                 tx.chain_id = chain_id;
+                tx.createdAt = new Date(Number(tx.timeStamp) * 1000)
               }
               let orderAttempt = await db.models.OrderAttempt.findOne({
                 where: {
@@ -386,8 +311,16 @@ db.connection
                       { hash: null },
                       { direction: tx.direction },
                       { period: { [db.Op.gt]: new Date() } },
+                      { createdAt: { [db.Op.lt]: tx.createdAt } },
+                      {
+                        [db.Op.or]: [
+                          { error: { [db.Op.like]: '%Transaction started at%but was not mined within%' } },
+                          { error: null },
+                        ],
+                      },
                     ],
                   },
+                  order: [['id', 'ASC']],
                 });
               } else {
                 await db.models.ContractIncome.create({
@@ -421,6 +354,12 @@ db.connection
                     },
                   });
                   if (!exists) {
+                    await db.models.OrderAttempt.update(
+                      {
+                        error: 'Transaction mined too slow',
+                      },
+                      { where: { id: validAttempt.id } }
+                    );
                     await db.models.ContractIncome.create({
                       order_attempt_id: validAttempt.id,
                       hash: tx.hash,

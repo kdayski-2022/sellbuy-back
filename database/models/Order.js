@@ -14,6 +14,7 @@ module.exports = {
     },
   },
   order_id: DataTypes.STRING,
+  attempt_id: DataTypes.INTEGER,
   payment_complete: DataTypes.BOOLEAN,
   order_complete: DataTypes.BOOLEAN,
   recieve: DataTypes.FLOAT,
