@@ -13,7 +13,6 @@ db.connection.authenticate().then(async () => {
         const ordersMadeBeingKid = await db.models.Order.findAll({
           where: {
             from: kid.address.toLowerCase(),
-            createdAt: { [db.Op.gte]: kid.createdAt },
           },
         });
         for (const order of ordersMadeBeingKid) {

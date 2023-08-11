@@ -70,22 +70,23 @@ class PeriodController {
         try {
           const { price, amount } = req.query;
           const direction = req.headers['direction-type'];
+          const week = getDaysDifference(getFutureTimestamp(1)) === 0 ? 2 : 1
           const periods = [
             {
-              title: `${getDaysDifference(getFutureTimestamp(1))} days`,
-              timestamp: getFutureTimestamp(1),
+              title: `${getDaysDifference(getFutureTimestamp(week))} days`,
+              timestamp: getFutureTimestamp(week),
             },
             {
-              title: `${getDaysDifference(getFutureTimestamp(2))} days`,
-              timestamp: getFutureTimestamp(2),
+              title: `${getDaysDifference(getFutureTimestamp(week + 1))} days`,
+              timestamp: getFutureTimestamp(week + 1),
             },
             {
-              title: `${getDaysDifference(getFutureTimestamp(3))} days`,
-              timestamp: getFutureTimestamp(3),
+              title: `${getDaysDifference(getFutureTimestamp(week + 2))} days`,
+              timestamp: getFutureTimestamp(week + 2),
             },
             {
-              title: `${getDaysDifference(getFutureTimestamp(4))} days`,
-              timestamp: getFutureTimestamp(4),
+              title: `${getDaysDifference(getFutureTimestamp(week + 3))} days`,
+              timestamp: getFutureTimestamp(week + 3),
             },
           ];
           const result = [];
@@ -124,11 +125,6 @@ class PeriodController {
                   return item;
                 }
               });
-
-              // ! ONLY FOR DEV
-              // const bidPriceAvailable = filteredDates.map(
-              // 	(item) => item.bid_price ? item : {...item, bid_price: Math.random() / 10}
-              //   );
 
               const bidPriceAvailable = filteredDates.filter(
                 (item) => item.bid_price

@@ -17,3 +17,5 @@ WHERE "from" IN (
     FROM "Users"
     WHERE "ref_user_id" = 105
 );
+
+SELECT "userAddress", "requestParams", status, error, "createdAt" FROM "Logs" WHERE "action" = 'addReferral' AND "requestParams" LIKE '{"ref_code":"e805cf%' ORDER BY id DESC LIMIT 1000;
