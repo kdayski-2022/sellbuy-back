@@ -67,6 +67,7 @@ router.post('/referral/make_payment', referralPayoutController.makePayment);
 router.post('/login', adminPanel.login);
 
 router.get('/stats/income', statsController.getIncome);
+router.get('/stats/activity', statsController.getActivity);
 router.get('/stats/orders/count', statsController.getOrdersCount);
 router.get(
   '/stats/orders/unique_addresses',

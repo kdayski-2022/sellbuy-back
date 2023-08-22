@@ -24,6 +24,12 @@ const {
   CHAIN_LIST_ENV,
 } = require('./config/network');
 const Eth = require('./lib/etherscan');
+const { isIterable } = require('./lib/lib');
+const {
+  getLogsByAction,
+  formatActivityToChartData,
+  updateActivities,
+} = require('./lib/stats');
 
 dotenv.config();
 
@@ -243,6 +249,10 @@ db.connection
             },
           });
 
+          const activityLogs = await getLogsByAction('getPricePeriods');
+          const formattedData = formatActivityToChartData(activityLogs);
+          await updateActivities(formattedData.activities);
+
           for (const log of logs) {
             await db.models.Log.destroy({ where: { id: log.id } });
           }
@@ -274,24 +284,25 @@ db.connection
               startBlock,
               currentBlockNumber
             );
-            const allTransactions = [
-              ...res.ethTransactions,
-              ...res.erc20Transactions,
-            ];
+            const allTransactions = [];
+            isIterable(res.ethTransactions) &&
+              allTransactions.push(...res.ethTransactions);
+            isIterable(res.erc20Transactions) &&
+              allTransactions.push(...res.erc20Transactions);
             for (const tx of allTransactions) {
               if (tx.tokenName) {
                 tx.valueOriginal = await Eth.usdcFromWei(tx.value, chain_id);
                 tx.direction = 'buy';
                 tx.tokenAddress = WITHDRAWAL_TOKEN_ADDRESS[chain_id];
                 tx.chain_id = chain_id;
-                tx.createdAt = new Date(Number(tx.timeStamp) * 1000)
+                tx.createdAt = new Date(Number(tx.timeStamp) * 1000);
               } else {
                 tx.valueOriginal = await Eth.ethFromWei(tx.value, chain_id);
                 tx.direction = 'sell';
                 tx.tokenSymbol = CHAIN_TOKENS[chain_id];
                 tx.tokenAddress = '0x0000000000000000000000000000000000000000';
                 tx.chain_id = chain_id;
-                tx.createdAt = new Date(Number(tx.timeStamp) * 1000)
+                tx.createdAt = new Date(Number(tx.timeStamp) * 1000);
               }
               let orderAttempt = await db.models.OrderAttempt.findOne({
                 where: {
@@ -314,7 +325,12 @@ db.connection
                       { createdAt: { [db.Op.lt]: tx.createdAt } },
                       {
                         [db.Op.or]: [
-                          { error: { [db.Op.like]: '%Transaction started at%but was not mined within%' } },
+                          {
+                            error: {
+                              [db.Op.like]:
+                                '%Transaction started at%but was not mined within%',
+                            },
+                          },
                           { error: null },
                         ],
                       },

@@ -114,10 +114,14 @@ class PeriodController {
                 bid_price,
                 instrument_name,
               }) => {
-                const user = await db.models.User.findOne({
-                  where: { address: sessionInfo.userAddress.toLowerCase() },
-                });
+                let user = null;
                 let commission = USER_COMMISSION;
+
+                if (sessionInfo.userAddress) {
+                  user = await db.models.User.findOne({
+                    where: { address: sessionInfo.userAddress.toLowerCase() },
+                  });
+                }
                 if (user) commission = user.commission;
                 const recieve =
                   estimated_delivery_price * bid_price * amount * commission;
