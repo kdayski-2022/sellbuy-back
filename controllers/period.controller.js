@@ -19,13 +19,16 @@ class PeriodController {
       sessionInfo,
       req,
     });
+    const { price, amount } = req.query;
+    let { tokenSymbol } = req.query;
+    // TODO no such token in derebit
+    tokenSymbol = tokenSymbol === 'WBTC' ? 'BTC' : tokenSymbol;
     axios
       .get(
-        `${apiUrl}/public/get_book_summary_by_currency?currency=ETH&kind=option`
+        `${apiUrl}/public/get_book_summary_by_currency?currency=${tokenSymbol}&kind=option`
       )
       .then(async (apiRes) => {
         try {
-          const { price, amount } = req.query;
           const direction = req.headers['direction-type'];
           const periods = [];
           const result = [];

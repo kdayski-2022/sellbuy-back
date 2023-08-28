@@ -40,6 +40,37 @@ const PAYOUT_CONTRACT_ADDRESS = {
   421613: '0x6aF384fA1a026b3633613aE9668CAFED7C78C085',
 };
 
+const PAYIN_TOKEN_ADDRESS_LIST = {
+  1: [
+    {
+      tokenSymbol: 'ETH',
+      tokenAddress: '0x0000000000000000000000000000000000000000',
+    },
+  ],
+  80001: [
+    {
+      tokenSymbol: 'ETH',
+      tokenAddress: '0x0000000000000000000000000000000000000000',
+    },
+    {
+      tokenSymbol: 'WBTC',
+      tokenAddress: '0x30483098DB3C16Ee941a7711699561eb356aDE03',
+    },
+  ],
+  42161: [
+    {
+      tokenSymbol: 'ETH',
+      tokenAddress: '0x0000000000000000000000000000000000000000',
+    },
+  ],
+  421613: [
+    {
+      tokenSymbol: 'ETH',
+      tokenAddress: '0x0000000000000000000000000000000000000000',
+    },
+  ],
+};
+
 const WITHDRAWAL_TOKEN_ADDRESS = {
   1: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
   80001: '0x2A54CCDBc7b39a153dB26E3F72aEdbe2ad1609F2',
@@ -90,4 +121,5 @@ module.exports = {
   API_KEYS,
   CHAIN_TOKENS,
   CHAIN_LIST_ENV,
+  PAYIN_TOKEN_ADDRESS_LIST,
 };

@@ -18,9 +18,12 @@ class PriceController {
       sessionInfo,
       req,
     });
+    let { tokenSymbol } = req.query;
+    // TODO no such token in derebit
+    tokenSymbol = tokenSymbol === 'WBTC' ? 'BTC' : tokenSymbol;
     axios
       .get(
-        `${apiUrl}/public/get_book_summary_by_currency?currency=ETH&kind=option`
+        `${apiUrl}/public/get_book_summary_by_currency?currency=${tokenSymbol}&kind=option`
       )
       .then((apiRes) => {
         const currentPrice = apiRes.data.result[0].estimated_delivery_price;
@@ -41,18 +44,24 @@ class PriceController {
       sessionInfo,
       req,
     });
+    let { tokenSymbol } = req.query;
+    // TODO no such token in derebit
+    tokenSymbol = tokenSymbol === 'WBTC' ? 'BTC' : tokenSymbol;
     axios
       .get(
-        `${apiUrl}/public/get_book_summary_by_currency?currency=ETH&kind=option`
+        `${apiUrl}/public/get_book_summary_by_currency?currency=${tokenSymbol}&kind=option`
       )
       .then((apiRes) => {
         try {
           const currentPrice = apiRes.data.result[0].estimated_delivery_price;
           const prices = [];
           const formatedCurrentPrice =
-            Math.ceil(currentPrice / strike_step_sell) * strike_step_sell;
+            Math.ceil(currentPrice / strike_step_sell[tokenSymbol]) *
+            strike_step_sell[tokenSymbol];
           for (let i = 0; i < 4; i++)
-            prices.push(formatedCurrentPrice + i * strike_step_sell);
+            prices.push(
+              formatedCurrentPrice + i * strike_step_sell[tokenSymbol]
+            );
 
           updateLog(logId, { status: 'success' });
           res.json({
@@ -78,18 +87,24 @@ class PriceController {
       sessionInfo,
       req,
     });
+    let { tokenSymbol } = req.query;
+    // TODO no such token in derebit
+    tokenSymbol = tokenSymbol === 'WBTC' ? 'BTC' : tokenSymbol;
     axios
       .get(
-        `${apiUrl}/public/get_book_summary_by_currency?currency=ETH&kind=option`
+        `${apiUrl}/public/get_book_summary_by_currency?currency=${tokenSymbol}&kind=option`
       )
       .then((apiRes) => {
         try {
           const currentPrice = apiRes.data.result[0].estimated_delivery_price;
           const prices = [];
           const formatedCurrentPrice =
-            Math.ceil(currentPrice / strike_step_buy) * strike_step_buy;
+            Math.ceil(currentPrice / strike_step_buy[tokenSymbol]) *
+            strike_step_buy[tokenSymbol];
           for (let i = -4; i < 0; i++)
-            prices.push(formatedCurrentPrice + i * strike_step_buy);
+            prices.push(
+              formatedCurrentPrice + i * strike_step_buy[tokenSymbol]
+            );
 
           updateLog(logId, { status: 'success' });
           res.json({
