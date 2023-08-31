@@ -20,10 +20,10 @@ const CHAIN_NAMES = {
 };
 
 const CHAIN_GAS_LIMITS = {
-  1: 22000,
-  80001: 22000,
-  42161: 2500000,
-  421613: 2500000,
+  1: { ETH: 22000, WBTC: 0 },
+  80001: { ETH: 22000, WBTC: 22000 },
+  42161: { ETH: 2500000, WBTC: 0 },
+  421613: { ETH: 2500000, WBTC: 2500000 },
 };
 
 const SERVICE_WALLET_ADDRESS = {
@@ -46,6 +46,10 @@ const PAYIN_TOKEN_ADDRESS_LIST = {
       tokenSymbol: 'ETH',
       tokenAddress: '0x0000000000000000000000000000000000000000',
     },
+    {
+      tokenSymbol: 'WBTC',
+      tokenAddress: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+    },
   ],
   80001: [
     {
@@ -54,7 +58,7 @@ const PAYIN_TOKEN_ADDRESS_LIST = {
     },
     {
       tokenSymbol: 'WBTC',
-      tokenAddress: '0x30483098DB3C16Ee941a7711699561eb356aDE03',
+      tokenAddress: '0x18C2fC6F793ad31E30a84FD7A66fF5614c8Ba4D0',
     },
   ],
   42161: [
@@ -62,11 +66,19 @@ const PAYIN_TOKEN_ADDRESS_LIST = {
       tokenSymbol: 'ETH',
       tokenAddress: '0x0000000000000000000000000000000000000000',
     },
+    {
+      tokenSymbol: 'WBTC',
+      tokenAddress: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
+    },
   ],
   421613: [
     {
       tokenSymbol: 'ETH',
       tokenAddress: '0x0000000000000000000000000000000000000000',
+    },
+    {
+      tokenSymbol: 'WBTC',
+      tokenAddress: '0x3Fe1Af16B8108372920Bfb8a97aAA20449085eA8',
     },
   ],
 };
@@ -108,6 +120,17 @@ const API_KEYS = {
   421613: 'PZAWVZRJXA5AX3MIN9NPC4VATACGXK7YPN',
 };
 
+const DECIMALS = {
+  USDC: 6,
+  ETH: 18,
+  WBTC: 8,
+};
+
+const VALID_AMOUNT = {
+  ETH: 1,
+  WBTC: 0.1,
+};
+
 module.exports = {
   CHAIN_LIST,
   SERVICE_WALLET_ADDRESS,
@@ -122,4 +145,6 @@ module.exports = {
   CHAIN_TOKENS,
   CHAIN_LIST_ENV,
   PAYIN_TOKEN_ADDRESS_LIST,
+  DECIMALS,
+  VALID_AMOUNT,
 };

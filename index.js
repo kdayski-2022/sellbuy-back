@@ -22,6 +22,9 @@ const {
   WITHDRAWAL_TOKEN_ADDRESS,
   CHAIN_TOKENS,
   CHAIN_LIST_ENV,
+  PAYOUT_CONTRACT_ADDRESS,
+  PAYIN_TOKEN_ADDRESS_LIST,
+  VALID_AMOUNT,
 } = require('./config/network');
 const Eth = require('./lib/etherscan');
 const { isIterable } = require('./lib/lib');
@@ -129,13 +132,15 @@ db.connection
           orderAttempts.forEach(async ({ id, ...data }) => {
             if (data && data.instrument_name) {
               let order_hedged = data.order_hedged;
-              if (data.amount < 1) order_hedged = true;
+              if (data.amount < VALID_AMOUNT[data.token_symbol])
+                order_hedged = true;
               let { order_id, error } = await postOrder({
                 attempt_id: id,
                 ...data,
                 order_hedged,
               });
-              if (data.amount < 1) order_id = 'hedging';
+              if (data.amount < VALID_AMOUNT[data.token_symbol])
+                order_id = 'hedging';
               const state = await checkState({ ...data, id, order_id, error });
               await db.models.OrderAttempt.update(
                 { ...state, order_id, error },
@@ -290,17 +295,38 @@ db.connection
             isIterable(res.erc20Transactions) &&
               allTransactions.push(...res.erc20Transactions);
             for (const tx of allTransactions) {
-              if (tx.tokenName) {
-                tx.valueOriginal = await Eth.usdcFromWei(tx.value, chain_id);
-                tx.direction = 'buy';
-                tx.tokenAddress = WITHDRAWAL_TOKEN_ADDRESS[chain_id];
+              let token = PAYIN_TOKEN_ADDRESS_LIST[chain_id].find(
+                (item) => item.tokenSymbol === tx.tokenSymbol
+              );
+              if (!token) {
+                token = PAYIN_TOKEN_ADDRESS_LIST[chain_id].find(
+                  (item) => item.tokenSymbol === 'ETH'
+                );
+              }
+              if (token) {
+                if (token.tokenSymbol === 'ETH') {
+                  tx.valueOriginal = await Eth.ethFromWei(tx.value, chain_id);
+                } else {
+                  tx.valueOriginal = await Eth.usdcFromWei(
+                    tx.value,
+                    token.tokenAddress,
+                    chain_id
+                  );
+                }
+                tx.direction = 'sell';
+                tx.tokenSymbol = token.tokenSymbol;
+                tx.tokenAddress = token.tokenAddress;
                 tx.chain_id = chain_id;
                 tx.createdAt = new Date(Number(tx.timeStamp) * 1000);
               } else {
-                tx.valueOriginal = await Eth.ethFromWei(tx.value, chain_id);
-                tx.direction = 'sell';
-                tx.tokenSymbol = CHAIN_TOKENS[chain_id];
-                tx.tokenAddress = '0x0000000000000000000000000000000000000000';
+                // TODO Проверить работу бай лоу
+                tx.valueOriginal = await Eth.usdcFromWei(
+                  tx.value,
+                  tx.to,
+                  chain_id
+                );
+                tx.direction = 'buy';
+                tx.tokenAddress = WITHDRAWAL_TOKEN_ADDRESS[chain_id];
                 tx.chain_id = chain_id;
                 tx.createdAt = new Date(Number(tx.timeStamp) * 1000);
               }

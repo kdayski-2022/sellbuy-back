@@ -1,8 +1,8 @@
 const db = require('../database');
 
-const id = 2361;
+const id = 2370;
 const hash =
-  '0xf5a9932afa810b66c02c29b10f9ffdbf75594eafa87f9dda5aaba605cae19083';
+  '0xaf67d951c8dd36d3d13f1e35a94f6785bf1114ccedf1b7b054a16edf76852346';
 
 db.connection.authenticate().then(async () => {
   try {

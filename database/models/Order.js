@@ -25,7 +25,7 @@ module.exports = {
   settlement_date: DataTypes.DATE,
   order_executed: DataTypes.BOOLEAN,
   payout_currency: DataTypes.STRING,
-  payout_eth: DataTypes.FLOAT,
+  payout_base: DataTypes.FLOAT,
   payout_usdc: DataTypes.FLOAT,
   payout_tx: DataTypes.STRING,
   direction: DataTypes.STRING,
@@ -43,4 +43,5 @@ module.exports = {
   autopay: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
   commission: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0.7 },
   chain_id: DataTypes.INTEGER,
+  token_symbol: DataTypes.STRING,
 };
