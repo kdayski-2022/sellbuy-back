@@ -1,10 +1,15 @@
 const DataTypes = require('sequelize');
 
 module.exports = {
-  address: DataTypes.STRING,
+  address: {
+    type: DataTypes.STRING,
+    set(value) {
+      this.setDataValue('address', value.toLowerCase());
+    },
+  },
   ref_code: DataTypes.STRING,
   ref_user_id: DataTypes.INTEGER,
-  ref_fee: DataTypes.INTEGER,
+  ref_fee: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 11.5 },
   nick_name: DataTypes.STRING,
   commission: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0.7 },
 };

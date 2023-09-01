@@ -1,1 +1,1 @@
-DROP TABLE "AirdropParticipants", "Airdrops", "Audit", "Orders", "Auths", "BalanceHistories", "Chats", "ErrorLogs", "Logs", "ManagerLogs", "ManagerSessions", "Managers", "Messages", "OrderAttempts", "ReferralPayouts", "Supports", "UserSessions", "UserSubscriptions", "Users", "Utms" CASCADE;
+DROP TABLE "Airdrops", "AirdropParticipants", "Auths", "Audit", "Chats", "ContractIncomes", "Logs", "Managers", "ManagerLogs", "ManagerSessions", "Messages", "Orders", "OrderAttempts", "ReferralPayouts", "Users", "UserSessions", "UserSubscriptions", "Utms" CASCADE;

@@ -11,6 +11,9 @@ module.exports = {
     },
   },
   direction: DataTypes.STRING,
+  execute_date: DataTypes.DATE,
+  recieve: DataTypes.FLOAT,
+  start_index_price: DataTypes.FLOAT,
   contract_text: DataTypes.TEXT,
 
   payment_complete: {

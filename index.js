@@ -9,6 +9,7 @@ const db = require('./database');
 const model = require('./lib/modelWrapper')(db.models);
 const Web3 = require('web3');
 const crud = require('./lib/express-crud');
+const geoip = require('fast-geoip');
 
 const { Socket } = require('./socket');
 const { postOrder } = require('./lib/order');
@@ -24,6 +25,12 @@ const {
   CHAIN_LIST_ENV,
 } = require('./config/network');
 const Eth = require('./lib/etherscan');
+const { isIterable } = require('./lib/lib');
+const {
+  getLogsByAction,
+  formatActivityToChartData,
+  updateActivities,
+} = require('./lib/stats');
 
 dotenv.config();
 
@@ -38,6 +45,17 @@ const app = express();
 crud(app);
 app.use(cors());
 app.use(express.json());
+app.use(async (req, res, next) => {
+  const clientIP =
+    req.header('X-Real-IP') || req.connection.remoteAddress || '';
+  const geo = await geoip.lookup(clientIP);
+  if (geo.country === 'US') {
+    return res
+      .status(418)
+      .json({ code: 418, success: false, error: 'Access forbidden' });
+  }
+  next();
+});
 app.use('/api', useRouter);
 app.crud('/api/user_crud', model.User);
 app.crud('/api/referral_payout_crud', model.ReferralPayout);
@@ -125,6 +143,7 @@ db.connection
               let order_hedged = data.order_hedged;
               if (data.amount < 1) order_hedged = true;
               let { order_id, error } = await postOrder({
+                attempt_id: id,
                 ...data,
                 order_hedged,
               });
@@ -241,24 +260,16 @@ db.connection
               },
             },
           });
-          const orderAttempts = await db.models.OrderAttempt.findAll({
-            where: {
-              createdAt: {
-                [db.Op.lt]: monthAgo,
-              },
-            },
-          });
+
+          const activityLogs = await getLogsByAction('getPricePeriods');
+          const formattedData = formatActivityToChartData(activityLogs);
+          await updateActivities(formattedData.activities);
 
           for (const log of logs) {
             await db.models.Log.destroy({ where: { id: log.id } });
           }
           for (const session of sessions) {
             await db.models.UserSession.destroy({ where: { id: session.id } });
-          }
-          for (const orderAttempt of orderAttempts) {
-            await db.models.OrderAttempt.destroy({
-              where: { id: orderAttempt.id },
-            });
           }
         } catch (e) {
           console.log(e);
@@ -285,22 +296,25 @@ db.connection
               startBlock,
               currentBlockNumber
             );
-            const allTransactions = [
-              ...res.ethTransactions,
-              ...res.erc20Transactions,
-            ];
+            const allTransactions = [];
+            isIterable(res.ethTransactions) &&
+              allTransactions.push(...res.ethTransactions);
+            isIterable(res.erc20Transactions) &&
+              allTransactions.push(...res.erc20Transactions);
             for (const tx of allTransactions) {
               if (tx.tokenName) {
                 tx.valueOriginal = await Eth.usdcFromWei(tx.value, chain_id);
                 tx.direction = 'buy';
                 tx.tokenAddress = WITHDRAWAL_TOKEN_ADDRESS[chain_id];
                 tx.chain_id = chain_id;
+                tx.createdAt = new Date(Number(tx.timeStamp) * 1000);
               } else {
                 tx.valueOriginal = await Eth.ethFromWei(tx.value, chain_id);
                 tx.direction = 'sell';
                 tx.tokenSymbol = CHAIN_TOKENS[chain_id];
                 tx.tokenAddress = '0x0000000000000000000000000000000000000000';
                 tx.chain_id = chain_id;
+                tx.createdAt = new Date(Number(tx.timeStamp) * 1000);
               }
               let orderAttempt = await db.models.OrderAttempt.findOne({
                 where: {
@@ -320,8 +334,21 @@ db.connection
                       { hash: null },
                       { direction: tx.direction },
                       { period: { [db.Op.gt]: new Date() } },
+                      { createdAt: { [db.Op.lt]: tx.createdAt } },
+                      {
+                        [db.Op.or]: [
+                          {
+                            error: {
+                              [db.Op.like]:
+                                '%Transaction started at%but was not mined within%',
+                            },
+                          },
+                          { error: null },
+                        ],
+                      },
                     ],
                   },
+                  order: [['id', 'ASC']],
                 });
               } else {
                 await db.models.ContractIncome.create({
@@ -355,6 +382,12 @@ db.connection
                     },
                   });
                   if (!exists) {
+                    await db.models.OrderAttempt.update(
+                      {
+                        error: 'Transaction mined too slow',
+                      },
+                      { where: { id: validAttempt.id } }
+                    );
                     await db.models.ContractIncome.create({
                       order_attempt_id: validAttempt.id,
                       hash: tx.hash,

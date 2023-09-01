@@ -276,7 +276,7 @@ class OrderController {
       sessionInfo,
       req,
     });
-    const { amount, price, period, orderData, address, hash, chain_id } =
+    const { attempt_id, amount, price, period, orderData, address, hash, chain_id } =
       req.body;
     const direction = req.headers['direction-type'];
     const { instrument_name, estimated_delivery_price, bid_price } = orderData;
@@ -306,6 +306,7 @@ class OrderController {
       // post order
       if (status) {
         await db.models.Order.create({
+          attempt_id,
           from: address.toLowerCase(),
           user_payment_tx_hash: hash,
           amount,
@@ -437,6 +438,25 @@ class OrderController {
     const { userAddress } = req.query;
     const direction = req.headers['direction-type'];
     try {
+      
+      let orderAttempts = await db.models.OrderAttempt.findAll({
+        where: {
+          address: userAddress.toLowerCase(),
+          direction,
+          [db.Op.or]: [
+            {
+              hash: {
+                [db.Op.ne]: null,
+              },
+              error: null
+            },
+            { 
+              hash: null, 
+              error: 'Transaction mined too slow' 
+            },
+          ]
+        },
+      });
       const orders = await db.models.Order.findAll({
         where: {
           from: userAddress.toLowerCase(),
@@ -446,8 +466,10 @@ class OrderController {
           },
         },
       });
+ 
+      orderAttempts = orderAttempts.filter(({id}) => !orders.find((order) => order.attempt_id === id))
       updateLog(logId, { status: 'success' });
-      res.json({ success: true, data: orders, sessionInfo });
+      res.json({ success: true, data: [...orderAttempts, ...orders], sessionInfo });
     } catch (e) {
       updateLog(logId, { status: 'failed', error: parseError(e) });
       res.json({
@@ -649,7 +671,7 @@ class OrderController {
       }
       res.json({
         success: true,
-        data: order,
+        data: orders,
         message: 'Orders was updated',
         sessionInfo,
       });
