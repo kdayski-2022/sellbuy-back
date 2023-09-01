@@ -48,11 +48,19 @@ app.use(express.json());
 app.use(async (req, res, next) => {
   const clientIP =
     req.header('X-Real-IP') || req.connection.remoteAddress || '';
+  const origin = req.header('origin');
   const geo = await geoip.lookup(clientIP);
-  if (geo.country === 'US') {
-    return res
-      .status(418)
-      .json({ code: 418, success: false, error: 'Access forbidden' });
+  if (
+    geo.country === 'RU' &&
+    (origin !== 'http://localhost:5112' || origin !== 'https://tymio.com')
+  ) {
+    return res.status(418).json({
+      code: 418,
+      success: false,
+      error:
+        'TYMIO is not available to people or companies who are residents of, or are located, incorporated or have a registered agent in a blocked country or a restricted territory.',
+    });
+    // `More details can be found in our <a href="${origin}/terms" target="_blank" style="text-decoration: underline;" onMouseOut="this.style.textDecoration='underline'" onMouseOver="this.style.textDecoration='none'">Terms of Use</a>`,
   }
   next();
 });
