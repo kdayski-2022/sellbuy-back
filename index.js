@@ -9,6 +9,7 @@ const db = require('./database');
 const model = require('./lib/modelWrapper')(db.models);
 const Web3 = require('web3');
 const crud = require('./lib/express-crud');
+const geoip = require('fast-geoip');
 
 const { Socket } = require('./socket');
 const { postOrder } = require('./lib/order');
@@ -44,6 +45,17 @@ const app = express();
 crud(app);
 app.use(cors());
 app.use(express.json());
+app.use(async (req, res, next) => {
+  const clientIP =
+    req.header('X-Real-IP') || req.connection.remoteAddress || '';
+  const geo = await geoip.lookup(clientIP);
+  if (geo.country === 'US') {
+    return res
+      .status(418)
+      .json({ code: 418, success: false, error: 'Access forbidden' });
+  }
+  next();
+});
 app.use('/api', useRouter);
 app.crud('/api/user_crud', model.User);
 app.crud('/api/referral_payout_crud', model.ReferralPayout);
