@@ -9,6 +9,7 @@ const db = require('./database');
 const model = require('./lib/modelWrapper')(db.models);
 const Web3 = require('web3');
 const crud = require('./lib/express-crud');
+const geoip = require('fast-geoip');
 
 const { Socket } = require('./socket');
 const { postOrder } = require('./lib/order');
@@ -47,6 +48,25 @@ const app = express();
 crud(app);
 app.use(cors());
 app.use(express.json());
+app.use(async (req, res, next) => {
+  const clientIP =
+    req.header('X-Real-IP') || req.connection.remoteAddress || '';
+  const origin = req.header('origin');
+  const geo = await geoip.lookup(clientIP);
+  if (
+    geo.country === 'US' &&
+    (origin !== 'http://localhost:5112' || origin !== 'https://tymio.com')
+  ) {
+    return res.status(418).json({
+      code: 418,
+      success: false,
+      error:
+        'TYMIO is not available to people or companies who are residents of, or are located, incorporated or have a registered agent in a blocked country or a restricted territory.',
+    });
+    // `More details can be found in our <a href="${origin}/terms" target="_blank" style="text-decoration: underline;" onMouseOut="this.style.textDecoration='underline'" onMouseOver="this.style.textDecoration='none'">Terms of Use</a>`,
+  }
+  next();
+});
 app.use('/api', useRouter);
 app.crud('/api/user_crud', model.User);
 app.crud('/api/referral_payout_crud', model.ReferralPayout);

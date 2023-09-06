@@ -3,7 +3,7 @@ const DataTypes = require('sequelize');
 module.exports = {
   userAddress: DataTypes.STRING,
   sessionToken: DataTypes.STRING,
-  ipAddres: DataTypes.STRING,
+  ipAddress: DataTypes.STRING,
   browser: DataTypes.STRING,
   typeMobile: DataTypes.STRING,
   walletType: DataTypes.STRING,
