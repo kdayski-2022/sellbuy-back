@@ -51,7 +51,7 @@ app.use(async (req, res, next) => {
   const origin = req.header('origin');
   const geo = await geoip.lookup(clientIP);
   if (
-    geo.country === 'RU' &&
+    geo.country === 'US' &&
     (origin !== 'http://localhost:5112' || origin !== 'https://tymio.com')
   ) {
     return res.status(418).json({
