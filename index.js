@@ -327,7 +327,7 @@ db.connection
                 if (token.tokenSymbol === 'ETH') {
                   tx.valueOriginal = await Eth.ethFromWei(tx.value, chain_id);
                 } else {
-                  tx.valueOriginal = await Eth.usdcFromWei(
+                  tx.valueOriginal = await Eth.tokenFromWei(
                     tx.value,
                     token.tokenAddress,
                     chain_id
@@ -340,7 +340,7 @@ db.connection
                 tx.createdAt = new Date(Number(tx.timeStamp) * 1000);
               } else {
                 // TODO Проверить работу бай лоу
-                tx.valueOriginal = await Eth.usdcFromWei(
+                tx.valueOriginal = await Eth.tokenFromWei(
                   tx.value,
                   tx.to,
                   chain_id

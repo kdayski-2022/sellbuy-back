@@ -14,7 +14,6 @@ const {
   USER_ORDER_DATA_PERPETUAL_RESULT,
   USER_ORDER_DATA_PERPETUAL_RESULT_TRADE,
 } = require('./constants');
-const { getTransactionReceipt } = require('./transfer');
 
 const propertiesTest = (obj, properties) => {
   properties.forEach((property) => expect(obj).toHaveProperty(property));
@@ -286,13 +285,12 @@ const userOrdersTest = (userOrders) => {
 const payoutReadyTest = async (web3, userOrders) => {
   await Promise.all(
     userOrders.forEach(async (order) => {
-      const { status } = await getTransactionReceipt(
-        order.user_payment_tx_hash
-      );
+      // const { status } = await getTransactionReceipt(
+      //   order.user_payment_tx_hash
+      // );
       // { execute_date: { [db.Op.lte]: new Date() } },
       // { order_complete: false },
       // { status: { [db.Op.notIn]: ['approved', 'denied'] } }
-
       // const orderDetails = JSON.parse(order.order)
       // get_order.params.order_id = order.order_id
       // const { data } = await axios.post(apiUrl, get_order, { headers: { 'Authorization': `Bearer ${accessToken}` } })
@@ -305,7 +303,6 @@ const payoutReadyTest = async (web3, userOrders) => {
       // 				const orderUpdated = await db.models.Order.findOne({
       // 					attributes: {exclude: ['perpetual']},
       // 					where: { order_id: order.order_id } })
-
       // 				let recieve
       // 				if (order.direction === 'sell') {
       // 					if (orderUpdated.end_index_price >= orderUpdated.target_index_price) {
@@ -322,7 +319,6 @@ const payoutReadyTest = async (web3, userOrders) => {
       // 						recieve = `${parseFloat(orderUpdated.price) * parseFloat(orderUpdated.amount) + parseFloat(orderUpdated.recieve)} USDC`
       // 					}
       // 				}
-
       // 				telegram.sendApprove(`Confirm the payment which you're about to make.\n${orderUpdated.from} will recieve ${recieve}\n\n${JSON.stringify(orderUpdated)}`, orderUpdated)
       // 				return
       // 			}
