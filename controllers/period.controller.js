@@ -48,7 +48,12 @@ class PeriodController {
             const [_, sortedDataUnderlying_index] =
               item.instrument_name.split('-');
             const targetPeriod = Date.parse(sortedDataUnderlying_index);
-            if (getDaysDifference(targetPeriod) <= 1) return false;
+            if (
+              getDaysDifference(targetPeriod) === 0 &&
+              new Date().getDay() === 5
+            )
+              return false;
+
             return new Date(targetPeriod).getDay() === 5;
           });
 
