@@ -23,6 +23,9 @@ const {
   WITHDRAWAL_TOKEN_ADDRESS,
   CHAIN_TOKENS,
   CHAIN_LIST_ENV,
+  PAYOUT_CONTRACT_ADDRESS,
+  PAYIN_TOKEN_ADDRESS_LIST,
+  VALID_AMOUNT,
 } = require('./config/network');
 const Eth = require('./lib/etherscan');
 const { isIterable } = require('./lib/lib');
@@ -149,13 +152,15 @@ db.connection
           orderAttempts.forEach(async ({ id, ...data }) => {
             if (data && data.instrument_name) {
               let order_hedged = data.order_hedged;
-              if (data.amount < 1) order_hedged = true;
+              if (data.amount < VALID_AMOUNT[data.token_symbol])
+                order_hedged = true;
               let { order_id, error } = await postOrder({
                 attempt_id: id,
                 ...data,
                 order_hedged,
               });
-              if (data.amount < 1) order_id = 'hedging';
+              if (data.amount < VALID_AMOUNT[data.token_symbol])
+                order_id = 'hedging';
               const state = await checkState({ ...data, id, order_id, error });
               await db.models.OrderAttempt.update(
                 { ...state, order_id, error },
@@ -310,25 +315,49 @@ db.connection
             isIterable(res.erc20Transactions) &&
               allTransactions.push(...res.erc20Transactions);
             for (const tx of allTransactions) {
-              if (tx.tokenName) {
-                tx.valueOriginal = await Eth.usdcFromWei(tx.value, chain_id);
-                tx.direction = 'buy';
-                tx.tokenAddress = WITHDRAWAL_TOKEN_ADDRESS[chain_id];
-                tx.chain_id = chain_id;
-                tx.createdAt = new Date(Number(tx.timeStamp) * 1000);
-              } else {
-                tx.valueOriginal = await Eth.ethFromWei(tx.value, chain_id);
+              // Если токена нет в транзакции, то он основной (ETH)
+              if (!tx.tokenSymbol) tx.tokenSymbol = 'ETH';
+
+              // Проверка есть ли поступивший токен в списке валидных токенах для продажи
+              let token = PAYIN_TOKEN_ADDRESS_LIST[chain_id].find(
+                (item) => item.tokenSymbol === tx.tokenSymbol
+              );
+
+              // Если токен найден, то это транза на продажу, если нет, то сетим токен в дефолтную пару (USDC) и объявляем тразу как покупка
+              if (token) {
                 tx.direction = 'sell';
-                tx.tokenSymbol = CHAIN_TOKENS[chain_id];
-                tx.tokenAddress = '0x0000000000000000000000000000000000000000';
-                tx.chain_id = chain_id;
-                tx.createdAt = new Date(Number(tx.timeStamp) * 1000);
+              } else {
+                token = {
+                  tokenSymbol: 'USDC',
+                  tokenAddress: WITHDRAWAL_TOKEN_ADDRESS[chain_id],
+                };
+                tx.direction = 'buy';
               }
+
+              // Приводим значение в читаемый вид
+              if (token.tokenSymbol === 'ETH') {
+                tx.valueOriginal = await Eth.ethFromWei(tx.value, chain_id);
+              } else {
+                tx.valueOriginal = await Eth.tokenFromWei(
+                  tx.value,
+                  token.tokenAddress,
+                  chain_id
+                );
+              }
+
+              // Заполняем оставшиеся поля
+              tx.tokenAddress = token.tokenAddress;
+              tx.chain_id = chain_id;
+              tx.createdAt = new Date(Number(tx.timeStamp) * 1000);
+
+              // Поиск попытки по хешу
               let orderAttempt = await db.models.OrderAttempt.findOne({
                 where: {
                   hash: tx.hash,
                 },
               });
+
+              // Если попытка не найдена, то ищем попытки, которые отлетели с ошибкой майнинга
               if (!orderAttempt) {
                 orderAttempt = await db.models.OrderAttempt.findAll({
                   where: {
@@ -358,6 +387,8 @@ db.connection
                   },
                   order: [['id', 'ASC']],
                 });
+
+                // Если попытка найдена, фиксируем поступление средств в контракт
               } else {
                 await db.models.ContractIncome.create({
                   order_attempt_id: orderAttempt.id,
@@ -370,7 +401,10 @@ db.connection
                   chain_id: tx.chain_id,
                 });
               }
+
+              // Если найдена валидная попытка или попытки с ошибкой
               if (orderAttempt && orderAttempt.length) {
+                // Поиск попытки по количеству депозита
                 let validAttempt;
                 for (const attempt of orderAttempt) {
                   const valid =

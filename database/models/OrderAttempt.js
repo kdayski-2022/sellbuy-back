@@ -53,4 +53,5 @@ module.exports = {
 
   error: DataTypes.TEXT,
   chain_id: DataTypes.INTEGER,
+  token_symbol: DataTypes.STRING,
 };

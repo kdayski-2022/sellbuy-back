@@ -1,6 +1,12 @@
 {
-	"strike_step_sell": 50,
-	"strike_step_buy": 50,
+	"strike_step_sell": {
+		"ETH": 50,
+		"BTC": 500
+	},
+	"strike_step_buy": {
+		"ETH": 50,
+		"BTC": 500
+	},
 	"TOMORROW": "Tomorrow",
 	"WEEK": "Week",
 	"TWO_WEEK": "TwoWeek",

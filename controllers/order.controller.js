@@ -2,6 +2,7 @@ const axios = require('axios');
 const dotenv = require('dotenv');
 const Web3 = require('web3');
 const db = require('../database');
+const session = require('../controllers/session.controller');
 const {
   buy_data,
   sell_data,
@@ -25,14 +26,17 @@ const {
 } = require('../lib/order');
 const { getSubject, getDealExpirationBody, sendMail } = require('../lib/email');
 const { INFURA_PROVIDERS } = require('../config/infura');
+const { DECIMALS } = require('../config/network');
+const isEmpty = require('is-empty');
 dotenv.config();
 const apiUrl = process.env.API_URL;
 const dbEnv = process.env.DB_ENV;
 
-const getCurrentPrice = async () => {
+const getCurrentPrice = async (tokenSymbol) => {
   try {
+    tokenSymbol = tokenSymbol === 'WBTC' ? 'BTC' : tokenSymbol;
     const { data } = await axios.get(
-      `${apiUrl}/public/get_book_summary_by_currency?currency=ETH&kind=option`
+      `${apiUrl}/public/get_book_summary_by_currency?currency=${tokenSymbol}&kind=option`
     );
     return data.result[0].estimated_delivery_price;
   } catch (e) {
@@ -43,22 +47,32 @@ const getCurrentPrice = async () => {
 
 const setExtraFields = async (orders) => {
   try {
-    let currentPrice = await getCurrentPrice();
+    const currentPriceETH = await getCurrentPrice('ETH');
+    const currentPriceBTC = await getCurrentPrice('WBTC');
+    const currentPrice = { ETH: currentPriceETH, WBTC: currentPriceBTC };
     if (currentPrice) {
       orders.rows = await Promise.all(
         orders.rows.map(async (order) => {
           if (new Date() > order.execute_date)
-            currentPrice = order.end_index_price;
-          let { ETHToPay, USDCToPay, order_executed, payout_currency } =
+            currentPrice[order.token_symbol] = order.end_index_price;
+          let { BaseToPay, USDCToPay, order_executed, payout_currency } =
             await calculatePayouts({
               ...order,
-              end_index_price: currentPrice,
+              end_index_price: currentPrice[order.token_symbol],
             });
 
           let payout_calculation_usdc,
-            payout_calculation_eth = null;
-          if (payout_currency === 'USDC') payout_calculation_usdc = USDCToPay;
-          if (payout_currency === 'ETH') payout_calculation_eth = ETHToPay;
+            payout_calculation_eth,
+            payout_calculation_wbtc = null;
+
+          if (payout_currency === 'USDC')
+            payout_calculation_usdc = parseFloat(USDCToPay).toFixed(6);
+          if (payout_currency === 'ETH')
+            payout_calculation_eth = parseFloat(BaseToPay).toFixed(6);
+          if (payout_currency === 'WBTC')
+            payout_calculation_wbtc = parseFloat(BaseToPay).toFixed(6);
+
+          order.recieve = parseFloat(parseFloat(order.recieve).toFixed(6));
 
           const app_revenue =
             Math.round(
@@ -67,12 +81,15 @@ const setExtraFields = async (orders) => {
 
           order.payout_calculation_usdc = payout_calculation_usdc;
           order.payout_calculation_eth = payout_calculation_eth;
+          order.payout_calculation_wbtc = payout_calculation_wbtc;
           if (new Date() > order.execute_date) {
             order.order_executed_calculation = order.order_executed;
           } else {
             order.order_executed_calculation = order_executed;
           }
           order.payout_currency = payout_currency;
+          order.commission = `${order.commission * 100}%`;
+          order.execute_date = order.execute_date.toISOString().split('T')[0];
           if (app_revenue) order.app_revenue = app_revenue;
           return order;
         })
@@ -95,7 +112,9 @@ const customFilters = async (orders, filters) => {
       );
     }
     if (filters.order_executed) {
-      let currentPrice = await getCurrentPrice();
+      const currentPriceETH = await getCurrentPrice('ETH');
+      const currentPriceBTC = await getCurrentPrice('WBTC');
+      const currentPrice = { ETH: currentPriceETH, WBTC: currentPriceBTC };
       if (currentPrice) {
         const result = [];
         for (const order of orders.rows) {
@@ -105,7 +124,7 @@ const customFilters = async (orders, filters) => {
           } else {
             const calculate = await calculatePayouts({
               ...order,
-              end_index_price: currentPrice,
+              end_index_price: currentPrice[order.token_symbol],
             });
             order_executed = calculate.order_executed;
             order_executed =
@@ -172,13 +191,16 @@ class OrderController {
       sessionInfo,
       req,
     });
+    const { period, price, amount } = req.query;
+    let { tokenSymbol } = req.query;
+    // TODO no such token in derebit
+    tokenSymbol = tokenSymbol === 'WBTC' ? 'BTC' : tokenSymbol;
     axios
       .get(
-        `${apiUrl}/public/get_book_summary_by_currency?currency=ETH&kind=option`
+        `${apiUrl}/public/get_book_summary_by_currency?currency=${tokenSymbol}&kind=option`
       )
       .then(async (apiRes) => {
         try {
-          const { period, price, amount } = req.query;
           const direction = req.headers['direction-type'];
 
           const filteredTypes = apiRes.data.result.filter((item) => {
@@ -232,7 +254,7 @@ class OrderController {
           if (user) commission = user.commission;
           const recieve =
             estimated_delivery_price * bid_price * Number(amount) * commission;
-          const start_index_price = await getCurrentPrice();
+          const start_index_price = await getCurrentPrice(tokenSymbol);
           let order = {
             ...maxBidPriceObj,
             recieve,
@@ -241,6 +263,7 @@ class OrderController {
             period: Number(period),
             execute_date: new Date(Number(period)),
             start_index_price,
+            token_symbol: tokenSymbol,
             direction,
           };
           const contract_html = getContractHtml(order);
@@ -266,134 +289,6 @@ class OrderController {
           });
         }
       });
-  }
-
-  async postOrder(req, res) {
-    const sessionInfo = await checkSession(req);
-    const logId = await writeLog({
-      action: 'postOrder',
-      status: 'in progress',
-      sessionInfo,
-      req,
-    });
-    const { attempt_id, amount, price, period, orderData, address, hash, chain_id } =
-      req.body;
-    const direction = req.headers['direction-type'];
-    const { instrument_name, estimated_delivery_price, bid_price } = orderData;
-    const postData = direction === 'sell' ? sell_data : buy_data;
-    postData.params.instrument_name = instrument_name;
-    postData.params.amount = Number(amount);
-
-    try {
-      direction === 'sell'
-        ? telegram.send(`User ${address} deposited ${amount} ETH`)
-        : telegram.send(
-            `User ${address} deposited ${Number(amount) * Number(price)} USDC`
-          );
-      const web3 = new Web3(INFURA_PROVIDERS[chain_id]);
-
-      const user = await db.models.User.findOne({
-        where: { address: address.toLowerCase() },
-      });
-      let commission = USER_COMMISSION;
-      if (user) commission = user.commission;
-
-      const transactionReceipt = await web3.eth.getTransactionReceipt(hash);
-      const status = transactionReceipt && transactionReceipt.status;
-      const recieve =
-        estimated_delivery_price * bid_price * Number(amount) * commission;
-
-      // post order
-      if (status) {
-        await db.models.Order.create({
-          attempt_id,
-          from: address.toLowerCase(),
-          user_payment_tx_hash: hash,
-          amount,
-          price,
-          order_complete: false,
-          payment_complete: status ? true : false,
-          instrument_name,
-          execute_date: period,
-          recieve,
-          status: 'pending',
-          direction,
-        });
-        const accessToken = await getAccessToken();
-
-        const { data } = await axios.post(apiUrl, postData, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-
-        const indexPriceData = await axios.post(apiUrl, get_index_price);
-
-        const order_id =
-          data && data.result && data.result.order && data.result.order.order_id
-            ? data.result.order.order_id
-            : null;
-        const order =
-          data && data.result && data.result.order
-            ? JSON.stringify(data.result.order)
-            : {};
-        const start_index_price =
-          indexPriceData &&
-          indexPriceData.data &&
-          indexPriceData.data.result &&
-          indexPriceData.data.result.index_price
-            ? indexPriceData.data.result.index_price
-            : null;
-
-        await db.models.Order.update(
-          {
-            status: 'created',
-            order_id,
-            order,
-            target_index_price: price,
-            start_index_price,
-          },
-          { where: { user_payment_tx_hash: hash } }
-        );
-
-        telegram.send(
-          `Order was made by user ${address}\n${data?.result?.order?.instrument_name}`
-        );
-
-        const orders = await db.models.Order.findAll({
-          where: { from: address.toLowerCase() },
-        });
-        res.json({
-          success: true,
-          data: { orders, order_id },
-          message: 'Order was made',
-          sessionInfo,
-        });
-        updateLog(logId, { status: 'success' });
-      } else {
-        res.json({
-          success: false,
-          data: null,
-          error: 'Transaction was not mined',
-          sessionInfo,
-        });
-        updateLog(logId, {
-          status: 'failed',
-          error: 'Transaction was not mined',
-        });
-      }
-    } catch (e) {
-      updateLog(logId, { status: 'failed', error: parseError(e) });
-      telegram.send(
-        `Order ${instrument_name} creation failed by user ${address}\n${JSON.stringify(
-          e?.response?.data?.error
-        )}`
-      );
-      res.json({
-        success: false,
-        data: null,
-        error: e?.response?.data?.error?.message,
-        sessionInfo,
-      });
-    }
   }
 
   async updateOrder(req, res) {
@@ -438,7 +333,6 @@ class OrderController {
     const { userAddress } = req.query;
     const direction = req.headers['direction-type'];
     try {
-      
       let orderAttempts = await db.models.OrderAttempt.findAll({
         where: {
           address: userAddress.toLowerCase(),
@@ -448,13 +342,13 @@ class OrderController {
               hash: {
                 [db.Op.ne]: null,
               },
-              error: null
+              error: null,
             },
-            { 
-              hash: null, 
-              error: 'Transaction mined too slow' 
+            {
+              hash: null,
+              error: 'Transaction mined too slow',
             },
-          ]
+          ],
         },
       });
       const orders = await db.models.Order.findAll({
@@ -466,10 +360,16 @@ class OrderController {
           },
         },
       });
- 
-      orderAttempts = orderAttempts.filter(({id}) => !orders.find((order) => order.attempt_id === id))
+
+      orderAttempts = orderAttempts.filter(
+        ({ id }) => !orders.find((order) => order.attempt_id === id)
+      );
       updateLog(logId, { status: 'success' });
-      res.json({ success: true, data: [...orderAttempts, ...orders], sessionInfo });
+      res.json({
+        success: true,
+        data: [...orderAttempts, ...orders],
+        sessionInfo,
+      });
     } catch (e) {
       updateLog(logId, { status: 'failed', error: parseError(e) });
       res.json({
@@ -506,20 +406,25 @@ class OrderController {
       });
       let lastChainId = 1;
       let web3 = new Web3(INFURA_PROVIDERS[dbEnv === 'production' ? 1 : 80001]);
-      const end_index_price = await getCurrentPrice();
+      const currentPriceETH = await getCurrentPrice('ETH');
+      const currentPriceBTC = await getCurrentPrice('WBTC');
+      const currentPrice = { ETH: currentPriceETH, WBTC: currentPriceBTC };
       for (const order of orders) {
         if (order.chain_id !== lastChainId) {
           lastChainId = order.chain_id;
 
           web3 = new Web3(INFURA_PROVIDERS[order.chain_id]);
         }
-        const { ETHToPay, USDCToPay, payout_currency, order_executed } =
-          await calculatePayouts({ ...order, end_index_price });
+        const { BaseToPay, USDCToPay, payout_currency, order_executed } =
+          await calculatePayouts({
+            ...order,
+            end_index_price: currentPrice[order.token_symbol],
+          });
         if (payout_currency === 'USDC') {
           order.payout = USDCToPay;
         }
-        if (payout_currency === 'ETH') {
-          order.payout = ETHToPay;
+        if (payout_currency === order.token_symbol) {
+          order.payout = BaseToPay;
         }
         order.payout_currency = payout_currency;
         order.order_executed = order_executed;
@@ -541,6 +446,16 @@ class OrderController {
 
   async getExpiration(req, res) {
     const sessionInfo = await checkSession(req);
+
+    const managerId = await session.getManagerId(req);
+    if (isEmpty(managerId))
+      return res.json({
+        success: false,
+        data: null,
+        error: 'Access denied',
+        sessionInfo,
+      });
+
     const logId = await writeLog({
       action: 'getExpiration',
       status: 'in progress',
@@ -569,14 +484,13 @@ class OrderController {
           lastChainId = order.chain_id;
           web3 = await new Web3(INFURA_PROVIDERS[order.chain_id]);
         }
-        const { ETHToPay, USDCToPay, payout_currency } = await calculatePayouts(
-          order
-        );
+        const { BaseToPay, USDCToPay, payout_currency } =
+          await calculatePayouts(order);
         if (payout_currency === 'USDC') {
           order.payout = USDCToPay;
         }
-        if (payout_currency === 'ETH') {
-          order.payout = ETHToPay;
+        if (payout_currency === order.token_symbol) {
+          order.payout = BaseToPay;
         }
         order.payin = await getPayin(web3, order);
       }
@@ -606,15 +520,20 @@ class OrderController {
     const { orders, tx } = req.body;
     try {
       for (const order of orders) {
-        let payout_usdc, payout_eth;
-        // TODO decimals
-        if (order.payout_currency === 'ETH') {
-          payout_usdc = (order.payout * order.end_index_price).toFixed(6);
-          payout_eth = parseFloat(order.payout).toFixed(18);
+        let payout_usdc, payout_base;
+        if (order.payout_currency === order.token_symbol) {
+          payout_usdc = (order.payout * order.end_index_price).toFixed(
+            DECIMALS['USDC']
+          );
+          payout_base = parseFloat(order.payout).toFixed(
+            DECIMALS[order.token_symbol]
+          );
         }
         if (order.payout_currency === 'USDC') {
-          payout_usdc = parseFloat(order.payout).toFixed(6);
-          payout_eth = (order.payout / order.end_index_price).toFixed(18);
+          payout_usdc = parseFloat(order.payout).toFixed(DECIMALS['USDC']);
+          payout_base = (order.payout / order.end_index_price).toFixed(
+            DECIMALS[order.token_symbol]
+          );
         }
         await db.models.Order.update(
           {
@@ -622,7 +541,7 @@ class OrderController {
             status: 'approved',
             settlement_date: new Date(),
             payout_usdc,
-            payout_eth,
+            payout_base,
             payout_tx: tx,
           },
           { where: { id: order.id } }

@@ -56,7 +56,7 @@ const USER_ORDER_DATA = [
   'start_index_price',
   'settlement_date',
   'order_executed',
-  'payout_eth',
+  'payout_base',
   'payout_usdc',
   'payout_tx',
   'direction',
