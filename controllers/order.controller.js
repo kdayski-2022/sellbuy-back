@@ -2,6 +2,7 @@ const axios = require('axios');
 const dotenv = require('dotenv');
 const Web3 = require('web3');
 const db = require('../database');
+const session = require('../controllers/session.controller');
 const {
   buy_data,
   sell_data,
@@ -26,6 +27,7 @@ const {
 const { getSubject, getDealExpirationBody, sendMail } = require('../lib/email');
 const { INFURA_PROVIDERS } = require('../config/infura');
 const { DECIMALS } = require('../config/network');
+const isEmpty = require('is-empty');
 dotenv.config();
 const apiUrl = process.env.API_URL;
 const dbEnv = process.env.DB_ENV;
@@ -63,11 +65,13 @@ const setExtraFields = async (orders) => {
             payout_calculation_eth,
             payout_calculation_wbtc = null;
 
-          payout_calculation_usdc = parseFloat(USDCToPay).toFixed(6);
-          if (order.token_symbol === 'ETH')
+          if (payout_currency === 'USDC')
+            payout_calculation_usdc = parseFloat(USDCToPay).toFixed(6);
+          if (payout_currency === 'ETH')
             payout_calculation_eth = parseFloat(BaseToPay).toFixed(6);
-          if (order.token_symbol === 'WBTC')
+          if (payout_currency === 'WBTC')
             payout_calculation_wbtc = parseFloat(BaseToPay).toFixed(6);
+
           order.recieve = parseFloat(parseFloat(order.recieve).toFixed(6));
 
           const app_revenue =
@@ -442,6 +446,16 @@ class OrderController {
 
   async getExpiration(req, res) {
     const sessionInfo = await checkSession(req);
+
+    const managerId = await session.getManagerId(req);
+    if (isEmpty(managerId))
+      return res.json({
+        success: false,
+        data: null,
+        error: 'Access denied',
+        sessionInfo,
+      });
+
     const logId = await writeLog({
       action: 'getExpiration',
       status: 'in progress',
@@ -507,7 +521,6 @@ class OrderController {
     try {
       for (const order of orders) {
         let payout_usdc, payout_base;
-        // TODO decimals
         if (order.payout_currency === order.token_symbol) {
           payout_usdc = (order.payout * order.end_index_price).toFixed(
             DECIMALS['USDC']
