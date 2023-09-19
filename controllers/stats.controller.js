@@ -4,9 +4,7 @@ const { writeLog, updateLog } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
 const db = require('../database');
 const {
-  formatToChartData,
   formatToWebStatistics,
-  formatToAdminStatistics,
   formatToOrdersCountChartData,
   formatToUniqueAddressesChartData,
   formatActivityToChartData,
@@ -16,43 +14,6 @@ const {
 dotenv.config();
 
 class StatsController {
-  async getIncome(req, res) {
-    const sessionInfo = await checkSession(req);
-    const logId = await writeLog({
-      action: 'getStatsIncome',
-      status: 'in progress',
-      sessionInfo,
-      req,
-    });
-
-    try {
-      const oneYearAgo = new Date();
-      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-      const orders = await db.models.Order.findAll({
-        where: {
-          order_complete: true,
-          status: 'approved',
-          execute_date: {
-            [db.Op.between]: [oneYearAgo, new Date()],
-          },
-        },
-      });
-
-      const { income, recieve } = formatToChartData(orders);
-
-      updateLog(logId, { status: 'success' });
-      res.json({ success: true, data: { income, recieve }, sessionInfo });
-    } catch (e) {
-      updateLog(logId, { status: 'failed', error: parseError(e) });
-      res.json({
-        success: false,
-        data: null,
-        error: e?.response?.data?.error?.message,
-        sessionInfo,
-      });
-    }
-  }
-
   async getOrdersCount(req, res) {
     const sessionInfo = await checkSession(req);
     const logId = await writeLog({
@@ -182,33 +143,6 @@ class StatsController {
 
       updateLog(logId, { status: 'success' });
       res.json({ success: true, data: { statistics }, sessionInfo });
-    } catch (e) {
-      updateLog(logId, { status: 'failed', error: parseError(e) });
-      res.json({
-        success: false,
-        data: null,
-        error: e?.response?.data?.error?.message,
-        sessionInfo,
-      });
-    }
-  }
-
-  async getAdminStatistics(req, res) {
-    const sessionInfo = await checkSession(req);
-    const logId = await writeLog({
-      action: 'getStatsWeb',
-      status: 'in progress',
-      sessionInfo,
-      req,
-    });
-
-    try {
-      const orders = await db.models.Order.findAll();
-
-      const statistic = formatToAdminStatistics(orders);
-
-      updateLog(logId, { status: 'success' });
-      res.json({ success: true, data: { statistic }, sessionInfo });
     } catch (e) {
       updateLog(logId, { status: 'failed', error: parseError(e) });
       res.json({

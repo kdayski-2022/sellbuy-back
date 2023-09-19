@@ -1,36 +1,18 @@
 const axios = require('axios');
 const dotenv = require('dotenv');
-const Web3 = require('web3');
 const db = require('../database');
-const session = require('../controllers/session.controller');
-const {
-  buy_data,
-  sell_data,
-  get_index_price,
-} = require('../config/requestData.json');
 const {
   getDaysDifference,
   getValidDays,
   getTimestamp,
 } = require('../lib/dates');
-const { getAccessToken } = require('../lib/auth');
 const { writeLog, updateLog } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
 const { parseError } = require('../lib/lib');
 const { USER_COMMISSION } = require('../config/constants.json');
-const {
-  calculatePayouts,
-  getPayin,
-  getContractText,
-  getContractHtml,
-} = require('../lib/order');
-const { getSubject, getDealExpirationBody, sendMail } = require('../lib/email');
-const { INFURA_PROVIDERS } = require('../config/infura');
-const { DECIMALS } = require('../config/network');
-const isEmpty = require('is-empty');
+const { getContractText, getContractHtml } = require('../lib/order');
 dotenv.config();
 const apiUrl = process.env.API_URL;
-const dbEnv = process.env.DB_ENV;
 
 const getCurrentPrice = async (tokenSymbol) => {
   try {
@@ -45,144 +27,7 @@ const getCurrentPrice = async (tokenSymbol) => {
   }
 };
 
-const setExtraFields = async (orders) => {
-  try {
-    const currentPriceETH = await getCurrentPrice('ETH');
-    const currentPriceBTC = await getCurrentPrice('WBTC');
-    const currentPrice = { ETH: currentPriceETH, WBTC: currentPriceBTC };
-    if (currentPrice) {
-      orders.rows = await Promise.all(
-        orders.rows.map(async (order) => {
-          if (new Date() > order.execute_date)
-            currentPrice[order.token_symbol] = order.end_index_price;
-          let { BaseToPay, USDCToPay, order_executed, payout_currency } =
-            await calculatePayouts({
-              ...order,
-              end_index_price: currentPrice[order.token_symbol],
-            });
-
-          let payout_calculation_usdc,
-            payout_calculation_eth,
-            payout_calculation_wbtc = null;
-
-          if (payout_currency === 'USDC')
-            payout_calculation_usdc = parseFloat(USDCToPay).toFixed(6);
-          if (payout_currency === 'ETH')
-            payout_calculation_eth = parseFloat(BaseToPay).toFixed(6);
-          if (payout_currency === 'WBTC')
-            payout_calculation_wbtc = parseFloat(BaseToPay).toFixed(6);
-
-          order.recieve = parseFloat(parseFloat(order.recieve).toFixed(6));
-
-          const app_revenue =
-            Math.round(
-              (order.recieve / order.commission) * (1 - order.commission) * 100
-            ) / 100;
-
-          order.payout_calculation_usdc = payout_calculation_usdc;
-          order.payout_calculation_eth = payout_calculation_eth;
-          order.payout_calculation_wbtc = payout_calculation_wbtc;
-          if (new Date() > order.execute_date) {
-            order.order_executed_calculation = order.order_executed;
-          } else {
-            order.order_executed_calculation = order_executed;
-          }
-          order.payout_currency = payout_currency;
-          order.commission = `${order.commission * 100}%`;
-          order.execute_date = order.execute_date.toISOString().split('T')[0];
-          if (app_revenue) order.app_revenue = app_revenue;
-          return order;
-        })
-      );
-    }
-    return orders;
-  } catch (e) {
-    console.log(e);
-    return orders;
-  }
-};
-
-const customFilters = async (orders, filters) => {
-  try {
-    if (filters.execute_date) {
-      orders.rows = orders.rows.filter((order) =>
-        new Date(order.execute_date)
-          .toISOString()
-          .startsWith(filters.execute_date)
-      );
-    }
-    if (filters.order_executed) {
-      const currentPriceETH = await getCurrentPrice('ETH');
-      const currentPriceBTC = await getCurrentPrice('WBTC');
-      const currentPrice = { ETH: currentPriceETH, WBTC: currentPriceBTC };
-      if (currentPrice) {
-        const result = [];
-        for (const order of orders.rows) {
-          let order_executed;
-          if (new Date() > order.execute_date) {
-            order_executed = order.order_executed;
-          } else {
-            const calculate = await calculatePayouts({
-              ...order,
-              end_index_price: currentPrice[order.token_symbol],
-            });
-            order_executed = calculate.order_executed;
-            order_executed =
-              order_executed === 'false'
-                ? order_executed
-                : Boolean(order_executed);
-          }
-          if (String(order_executed) === String(filters.order_executed)) {
-            result.push(order);
-          }
-        }
-        orders.rows = result;
-      }
-    }
-    return orders;
-  } catch (e) {
-    console.log(e);
-    return orders;
-  }
-};
-
 class OrderController {
-  async getOrders(req, res) {
-    await checkSession(req);
-
-    const {
-      _end = 10,
-      _order = 'ASC',
-      _sort = 'id',
-      _start = 0,
-      execute_date,
-      order_executed,
-      order_complete,
-      chain_id,
-    } = req.query;
-
-    let where = order_complete ? { order_complete } : {};
-    where = chain_id ? { ...where, chain_id } : where;
-    let orders = await db.models.Order.findAndCountAll({
-      where,
-      offset: _start,
-      limit: _end,
-      order: [[_sort, _order]],
-    });
-
-    orders = await customFilters(orders, {
-      execute_date,
-      order_executed,
-    });
-    orders = await setExtraFields(orders);
-    orders.count = orders.rows.length;
-
-    res.setHeader('Access-Control-Expose-Headers', 'X-Total-Count');
-    res.setHeader('X-Total-Count', orders.count);
-
-    return res.status(200).send(orders.rows);
-  }
-
   async getOrder(req, res) {
     const sessionInfo = await checkSession(req);
     const logId = await writeLog({
@@ -227,13 +72,6 @@ class OrderController {
             if (validDays.includes(choosenDay) && choosenMonth === targetMonth)
               return item;
           });
-
-          // Bid price is not stable
-
-          // ! ONLY FOR DEV
-          // const bidPriceAvailable = fillteredDates.map((item) =>
-          //   item.bid_price ? item : { ...item, bid_price: Math.random() / 10 }
-          // );
 
           const bidPriceAvailable = fillteredDates.filter(
             (item) => item.bid_price
@@ -291,37 +129,6 @@ class OrderController {
       });
   }
 
-  async updateOrder(req, res) {
-    const sessionInfo = await checkSession(req);
-    const logId = await writeLog({
-      action: 'updateOrder',
-      status: 'in progress',
-      sessionInfo,
-      req,
-    });
-    const order = req.body;
-
-    try {
-      const { id } = order;
-      await db.models.Order.update({ ...order }, { where: { id } });
-      res.json({
-        success: true,
-        data: order,
-        message: 'Order was updated',
-        sessionInfo,
-      });
-      updateLog(logId, { status: 'success' });
-    } catch (e) {
-      updateLog(logId, { status: 'failed', error: parseError(e) });
-      res.json({
-        success: false,
-        data: null,
-        error: parseError(e),
-        sessionInfo,
-      });
-    }
-  }
-
   async getUserOrders(req, res) {
     const sessionInfo = await checkSession(req);
     const logId = await writeLog({
@@ -376,229 +183,6 @@ class OrderController {
         success: false,
         data: null,
         error: e?.response?.data?.error?.message,
-        sessionInfo,
-      });
-    }
-  }
-
-  async getExpirationPrediction(req, res) {
-    const sessionInfo = await checkSession(req);
-    const logId = await writeLog({
-      action: 'getExpirationPrediction',
-      status: 'in progress',
-      sessionInfo,
-      req,
-    });
-    const { all, chain_id } = req.query;
-    try {
-      const now = new Date();
-      const sevenDaysLater = new Date();
-      sevenDaysLater.setDate(now.getDate() + 7);
-      const and = [
-        { execute_date: { [db.Op.gte]: now } },
-        { order_complete: false },
-        { smart_contract: true },
-        { chain_id },
-      ];
-      if (!all) and.push({ execute_date: { [db.Op.lt]: sevenDaysLater } });
-      let orders = await db.models.Order.findAll({
-        where: { [db.Op.and]: and },
-      });
-      let lastChainId = 1;
-      let web3 = new Web3(INFURA_PROVIDERS[dbEnv === 'production' ? 1 : 80001]);
-      const currentPriceETH = await getCurrentPrice('ETH');
-      const currentPriceBTC = await getCurrentPrice('WBTC');
-      const currentPrice = { ETH: currentPriceETH, WBTC: currentPriceBTC };
-      for (const order of orders) {
-        if (order.chain_id !== lastChainId) {
-          lastChainId = order.chain_id;
-          web3 = new Web3(INFURA_PROVIDERS[order.chain_id]);
-        }
-        const { BaseToPay, USDCToPay, payout_currency, order_executed } =
-          await calculatePayouts({
-            ...order,
-            end_index_price: currentPrice[order.token_symbol],
-          });
-        if (payout_currency === 'USDC') {
-          order.payout = USDCToPay;
-        }
-        if (payout_currency === order.token_symbol) {
-          order.payout = BaseToPay;
-        }
-        order.payout_currency = payout_currency;
-        order.order_executed = order_executed;
-        order.payin = await getPayin(web3, order);
-      }
-      updateLog(logId, { status: 'success' });
-      res.json({ success: true, data: orders, sessionInfo });
-    } catch (e) {
-      console.log(e);
-      updateLog(logId, { status: 'failed', error: parseError(e) });
-      res.json({
-        success: false,
-        data: null,
-        error: e?.response?.data?.error?.message,
-        sessionInfo,
-      });
-    }
-  }
-
-  async getExpiration(req, res) {
-    const sessionInfo = await checkSession(req);
-    const managerId = await session.getManagerId(req);
-    if (isEmpty(managerId))
-      return res.json({
-        success: false,
-        data: null,
-        error: 'Access denied',
-        sessionInfo,
-      });
-
-    const logId = await writeLog({
-      action: 'getExpiration',
-      status: 'in progress',
-      sessionInfo,
-      req,
-    });
-    const { chain_id } = req.query;
-    try {
-      let orders = await db.models.Order.findAll({
-        where: {
-          [db.Op.and]: [
-            { execute_date: { [db.Op.lte]: new Date() } },
-            { order_complete: false },
-            { status: 'pending_approve' },
-            { smart_contract: true },
-            { chain_id },
-          ],
-        },
-      });
-      let lastChainId = 1;
-      let web3 = await new Web3(
-        INFURA_PROVIDERS[dbEnv === 'production' ? 1 : 80001]
-      );
-      for (const order of orders) {
-        if (lastChainId !== order.chain_id) {
-          lastChainId = order.chain_id;
-          web3 = await new Web3(INFURA_PROVIDERS[order.chain_id]);
-        }
-        const { BaseToPay, USDCToPay, payout_currency } =
-          await calculatePayouts(order);
-        if (payout_currency === 'USDC') {
-          order.payout = USDCToPay;
-        }
-        if (payout_currency === order.token_symbol) {
-          order.payout = BaseToPay;
-        }
-        order.payin = await getPayin(web3, order);
-      }
-      updateLog(logId, { status: 'success' });
-      res.json({ success: true, data: orders, sessionInfo });
-    } catch (e) {
-      console.log(e);
-      updateLog(logId, { status: 'failed', error: parseError(e) });
-      res.json({
-        success: false,
-        data: null,
-        error: e?.response?.data?.error?.message,
-        sessionInfo,
-      });
-    }
-  }
-
-  async postExpiration(req, res) {
-    const sessionInfo = await checkSession(req);
-    const logId = await writeLog({
-      action: 'postExpiration',
-      status: 'in progress',
-      sessionInfo,
-      req,
-    });
-
-    const { orders, tx } = req.body;
-    try {
-      for (const order of orders) {
-        let payout_usdc, payout_base;
-        if (order.payout_currency === order.token_symbol) {
-          payout_usdc = (order.payout * order.end_index_price).toFixed(
-            DECIMALS['USDC']
-          );
-          payout_base = parseFloat(order.payout).toFixed(
-            DECIMALS[order.token_symbol]
-          );
-        }
-        if (order.payout_currency === 'USDC') {
-          payout_usdc = parseFloat(order.payout).toFixed(DECIMALS['USDC']);
-          payout_base = (order.payout / order.end_index_price).toFixed(
-            DECIMALS[order.token_symbol]
-          );
-        }
-        await db.models.Order.update(
-          {
-            order_complete: true,
-            status: 'approved',
-            settlement_date: new Date(),
-            payout_usdc,
-            payout_base,
-            payout_tx: tx,
-          },
-          { where: { id: order.id } }
-        );
-
-        try {
-          const orderDB = await db.models.Order.findOne({
-            where: { id: order.id },
-          });
-
-          const userCompleteOrders = await db.models.Order.findAll({
-            where: {
-              from: orderDB.from.toLowerCase(),
-              status: 'approved',
-              order_complete: true,
-            },
-          });
-
-          const totalEarned = userCompleteOrders
-            .map(({ recieve }) => (recieve ? recieve : 0))
-            .reduce((a, b) => a + b, 0);
-
-          const subscription = await db.models.UserSubscription.findOne({
-            where: {
-              address: orderDB.from.toLowerCase(),
-              transaction_notifications: true,
-            },
-          });
-
-          if (subscription) {
-            orderDB.subscription = subscription;
-            orderDB.total = {
-              earned: totalEarned,
-              orders: userCompleteOrders.length,
-            };
-            if (dbEnv === 'development')
-              orderDB.subscription.email = 'npoqpu2010@mail.ru';
-            const subject = getSubject('transaction_notifications');
-            const html = getDealExpirationBody(orderDB);
-            await sendMail([orderDB.subscription.email], subject, '', html);
-          }
-        } catch (e) {
-          console.log(e);
-          console.log('Send email error');
-        }
-      }
-      res.json({
-        success: true,
-        data: orders,
-        message: 'Orders was updated',
-        sessionInfo,
-      });
-      updateLog(logId, { status: 'success' });
-    } catch (e) {
-      updateLog(logId, { status: 'failed', error: parseError(e) });
-      res.json({
-        success: false,
-        data: null,
-        error: parseError(e),
         sessionInfo,
       });
     }
