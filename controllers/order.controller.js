@@ -412,7 +412,6 @@ class OrderController {
       for (const order of orders) {
         if (order.chain_id !== lastChainId) {
           lastChainId = order.chain_id;
-
           web3 = new Web3(INFURA_PROVIDERS[order.chain_id]);
         }
         const { BaseToPay, USDCToPay, payout_currency, order_executed } =
@@ -446,7 +445,6 @@ class OrderController {
 
   async getExpiration(req, res) {
     const sessionInfo = await checkSession(req);
-
     const managerId = await session.getManagerId(req);
     if (isEmpty(managerId))
       return res.json({
