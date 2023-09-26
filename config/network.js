@@ -34,9 +34,9 @@ const SERVICE_WALLET_ADDRESS = {
 };
 
 const PAYOUT_CONTRACT_ADDRESS = {
-  1: '0x1cc15fc92c0d4cd9e9bfeee6905c0b0fcaa261cd',
+  1: '0x0D0C69c9E31923712f2D51d994950D08Ed9b2958',
   80001: '0x308C7D1C24724004dC03605e370c730774cEE08c',
-  42161: '0x1cc15fc92c0d4cd9e9bfeee6905c0b0fcaa261cd',
+  42161: '0x0D0C69c9E31923712f2D51d994950D08Ed9b2958',
   421613: '0xF45e51D3532D6637f5030b0C89E09f209cb9D45e',
 };
 
@@ -115,11 +115,11 @@ const WITHDRAWAL_TOKEN_ADDRESS = {
 
 const INFURA_PROVIDERS = {
   1: 'https://mainnet.infura.io/v3/facd693a8e764005bf265d603b34a4f9',
-  80001: 'https://polygon-mumbai.infura.io/v3/facd693a8e764005bf265d603b34a4f9',
+  80001: 'https://polygon-mumbai.infura.io/v3/010ca5412a6e47f28f00bb896bf11922',
   42161:
     'https://arbitrum-mainnet.infura.io/v3/dbfff08523c14a52b0280dc383126193',
   421613:
-    'https://arbitrum-goerli.infura.io/v3/dbfff08523c14a52b0280dc383126193',
+    'https://arbitrum-goerli.infura.io/v3/010ca5412a6e47f28f00bb896bf11922',
 };
 
 const BLOCK_EXPLORERS = {
