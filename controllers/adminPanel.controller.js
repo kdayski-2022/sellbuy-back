@@ -547,10 +547,12 @@ class AdminPanel {
       order_executed,
       order_complete,
       chain_id,
+      token_symbol,
     } = req.query;
 
     let where = order_complete ? { order_complete } : {};
     where = chain_id ? { ...where, chain_id } : where;
+    where = token_symbol ? { ...where, token_symbol } : where;
     let orders = await db.models.Order.findAndCountAll({
       where,
       offset: _start,
