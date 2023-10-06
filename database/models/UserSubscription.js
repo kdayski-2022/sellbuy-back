@@ -5,4 +5,5 @@ module.exports = {
   email: DataTypes.STRING,
   transaction_notifications: DataTypes.BOOLEAN,
   news: DataTypes.BOOLEAN,
+  terms: DataTypes.BOOLEAN,
 };
