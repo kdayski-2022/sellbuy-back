@@ -73,6 +73,7 @@ app.crud('/api/referral_payout_crud', model.ReferralPayout);
 app.crud('/api/order_crud', model.Order);
 app.crud('/api/log_crud', model.Log);
 app.crud('/api/contract_income', model.ContractIncome);
+app.crud('/api/subscription_crud', model.UserSubscription);
 
 db.connection
   .sync({ alter: true })
