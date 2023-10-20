@@ -61,6 +61,7 @@ class PriceController {
             prices.push(
               formatedCurrentPrice + i * strike_step_sell[tokenSymbol]
             );
+          prices.sort((a, b) => a - b);
           updateLog(logId, { status: 'success' });
           res.json({
             success: true,
@@ -103,6 +104,7 @@ class PriceController {
             prices.push(
               formatedCurrentPrice + i * strike_step_buy[tokenSymbol]
             );
+          prices.sort((a, b) => b - a);
           updateLog(logId, { status: 'success' });
           res.json({
             success: true,
