@@ -158,6 +158,7 @@ class UserController {
           notifications: null,
           transaction_notifications: null,
           news: null,
+          terms: null,
         };
       }
 
@@ -189,7 +190,7 @@ class UserController {
     });
     const { address } = req.params;
     const { subsctiptions, email, telegram } = req.body;
-    const { news, transaction_notifications } = subsctiptions;
+    const { news, transaction_notifications, terms } = subsctiptions;
     try {
       let subscription = await db.models.UserSubscription.findOne({
         where: {
@@ -205,7 +206,7 @@ class UserController {
       }
 
       await db.models.UserSubscription.update(
-        { news, transaction_notifications, email, telegram },
+        { news, transaction_notifications, email, telegram, terms },
         { where: { address: address.toLowerCase() } }
       );
 

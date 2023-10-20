@@ -6,4 +6,5 @@ module.exports = {
   telegram: DataTypes.STRING,
   transaction_notifications: DataTypes.BOOLEAN,
   news: DataTypes.BOOLEAN,
+  terms: DataTypes.BOOLEAN,
 };

@@ -138,12 +138,10 @@ class OrderController {
       req,
     });
     const { userAddress } = req.query;
-    const direction = req.headers['direction-type'];
     try {
       let orderAttempts = await db.models.OrderAttempt.findAll({
         where: {
           address: userAddress.toLowerCase(),
-          direction,
           [db.Op.or]: [
             {
               hash: {
@@ -161,7 +159,6 @@ class OrderController {
       const orders = await db.models.Order.findAll({
         where: {
           from: userAddress.toLowerCase(),
-          direction,
           status: {
             [db.Op.ne]: 'pending',
           },
@@ -171,10 +168,33 @@ class OrderController {
       orderAttempts = orderAttempts.filter(
         ({ id }) => !orders.find((order) => order.attempt_id === id)
       );
+
+      const approvedOrders = orders.filter(
+        (order) => order.status === 'approved'
+      );
+      const total = {};
+      total.earned = 0;
+      total.executed = 0;
+      total.turnoverUSDC = 0;
+      total.daysOnThePlatform = 0;
+
+      for (const order of approvedOrders) {
+        total.earned += order.recieve;
+        if (order.order_executed) {
+          total.executed += 1;
+        }
+        total.turnoverUSDC += order.payout_usdc;
+        const daysDifference = getDaysDifference(order.createdAt);
+        if (total.daysOnThePlatform < daysDifference) {
+          total.daysOnThePlatform = daysDifference;
+        }
+      }
+
       updateLog(logId, { status: 'success' });
       res.json({
         success: true,
         data: [...orderAttempts, ...orders],
+        total,
         sessionInfo,
       });
     } catch (e) {
