@@ -12,7 +12,7 @@ const io = require('socket.io')(server, {
 
 const { getChat, getChatBySessionToken, readChat } = require('./lib/chat');
 
-const SOCKET_PORT = process.env.SOCKET_PORT || 4000;
+const SOCKET_PORT = process.env.SOCKET_PORT;
 const NEW_CHAT_MESSAGE_EVENT = 'newChatMessage';
 const OPEN_CHAT = 'openChat';
 
@@ -69,7 +69,7 @@ function Socket() {
     });
   });
   server.listen(SOCKET_PORT, () => {
-    console.log(`Listening on port ${SOCKET_PORT}`);
+    console.log(`Listen socket port ${SOCKET_PORT}`);
   });
 }
 
