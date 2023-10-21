@@ -51,7 +51,7 @@ app.use(async (req, res, next) => {
   if (
     geo &&
     geo.country === 'US' &&
-    (!origin.includes('localhost') || origin !== 'https://tymio.com')
+    (origin !== 'http://localhost:5112' || origin !== 'https://tymio.com')
   ) {
     return res.status(418).json({
       code: 418,
