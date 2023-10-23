@@ -86,8 +86,10 @@ const getOrders = async (referralsPayouts) => {
         id: payout.order_id,
       },
     });
-    order.referral_paid = payout.paid;
-    orders.push(order);
+    if (order) {
+      order.referral_paid = payout.paid;
+      orders.push(order);
+    }
   }
   return orders;
 };

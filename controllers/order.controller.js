@@ -179,7 +179,7 @@ class OrderController {
       total.daysOnThePlatform = 0;
 
       for (const order of approvedOrders) {
-        total.earned += order.recieve;
+        total.earned += Math.floor(order.recieve);
         if (order.order_executed) {
           total.executed += 1;
         }
@@ -190,10 +190,11 @@ class OrderController {
         }
       }
 
+      const data = [...orderAttempts, ...orders];
       updateLog(logId, { status: 'success' });
       res.json({
         success: true,
-        data: [...orderAttempts, ...orders],
+        data,
         total,
         sessionInfo,
       });
