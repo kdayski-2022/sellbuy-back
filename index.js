@@ -30,6 +30,7 @@ const {
   formatActivityToChartData,
   updateActivities,
 } = require('./lib/stats');
+const { getTimeDifference } = require('./lib/dates');
 
 dotenv.config();
 
@@ -451,8 +452,28 @@ db.connection
                           chain_id: tx.chain_id,
                         });
                         telegram.send(
-                          `${validAttempt.id} Order attempt has not catched hash\n${BLOCK_EXPLORERS[chain_id]}/tx/${tx.hash}`
+                          `${validAttempt.id} Order attempt has not caught hash\n${BLOCK_EXPLORERS[chain_id]}/tx/${tx.hash}`
                         );
+                        const timeDifference = getTimeDifference(
+                          validAttempt.createdAt
+                        );
+                        telegram.send(
+                          `Transaction was initiated ${timeDifference.formatted} ago`
+                        );
+                        const timeLimit = 10;
+                        if (timeDifference.minutes < timeLimit) {
+                          await db.models.OrderAttempt.update(
+                            {
+                              hash: tx.hash,
+                              error: null,
+                            },
+                            { where: { id: validAttempt.id } }
+                          );
+                        } else {
+                          telegram.send(
+                            `Transaction mining took too much time. Limit is ${timeLimit} minutes @georgv @fanil`
+                          );
+                        }
                       }
                     }
                   }
