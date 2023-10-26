@@ -398,6 +398,12 @@ class AdminPanel {
           const orderDB = await db.models.Order.findOne({
             where: { id: order.id },
           });
+          const orderAttempt = await db.models.OrderAttempt.findOne({
+            where: { id: orderDB.attempt_id },
+          });
+          orderDB.bid_price = orderAttempt.bid_price;
+          orderDB.estimated_delivery_price =
+            orderAttempt.estimated_delivery_price;
 
           const userCompleteOrders = await db.models.Order.findAll({
             where: {
