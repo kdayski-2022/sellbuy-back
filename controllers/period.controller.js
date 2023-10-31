@@ -136,10 +136,9 @@ class PeriodController {
                 const percent = (recieve / price) * 100;
                 const days = getDaysDifference(timestamp);
                 const apr = getApr(
-                  estimated_delivery_price,
-                  bid_price,
+                  recieve,
                   price,
-                  commission,
+                  amount,
                   days
                 );
                 const earnPercent =

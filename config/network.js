@@ -159,6 +159,11 @@ const VALID_STEP = {
   WBTC: 0.1,
 };
 
+const VALID_DECIMALS = {
+  ETH: 0,
+  WBTC: 1,
+}
+
 module.exports = {
   CHAIN_LIST,
   SERVICE_WALLET_ADDRESS,
@@ -177,4 +182,5 @@ module.exports = {
   VALID_AMOUNT,
   TOKEN_ADDRESS,
   VALID_STEP,
+  VALID_DECIMALS
 };

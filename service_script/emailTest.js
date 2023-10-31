@@ -1,7 +1,7 @@
 const db = require('../database');
 const { getSubject, getDealExpirationBody, sendMail } = require('../lib/email');
 db.connection.authenticate().then(async () => {
-  const id = 722;
+  const id = 828;
 
   const orderDB = await db.models.Order.findOne({
     where: { id },
