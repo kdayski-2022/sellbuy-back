@@ -1,7 +1,13 @@
 const db = require('../database');
-const { getSubject, getDealExpirationBody, sendMail } = require('../lib/email');
+const {
+  getSubject,
+  getDealExpirationBody,
+  sendMail,
+  getDealInitiationBody,
+} = require('../lib/email');
 db.connection.authenticate().then(async () => {
-  const id = 828;
+  // const id = 828;
+  const id = 918;
 
   const orderDB = await db.models.Order.findOne({
     where: { id },
@@ -38,10 +44,17 @@ db.connection.authenticate().then(async () => {
       orders: userCompleteOrders.length,
     };
 
-    orderDB.subscription.email = 'npoqpu2010@mail.ru';
+    // orderDB.subscription.email = 'npoqpu2010@mail.ru';
+    // orderDB.subscription.email = 'igorlebedev018@gmail.com';
+    // orderDB.subscription.email = 'npoqpu6@gmail.com';
+    orderDB.subscription.email = 'georgv@me.com';
+
+    const emails = [orderDB.subscription.email];
+
     const subject = getSubject('transaction_notifications');
-    const html = getDealExpirationBody(orderDB);
-    await sendMail([orderDB.subscription.email], subject, '', html);
+    // const html = getDealExpirationBody(orderDB);
+    const html = getDealInitiationBody(orderDB);
+    await sendMail(emails, subject, '', html);
   }
   console.log('ok');
 });
