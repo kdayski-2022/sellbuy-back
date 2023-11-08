@@ -74,5 +74,6 @@ router.get(
   statsController.getUniqueAddresses
 );
 router.get('/web/statistics', statsController.getWebStatistics);
+router.post('/ambassador', userController.addAmbassador);
 
 module.exports = router;

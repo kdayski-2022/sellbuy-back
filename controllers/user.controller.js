@@ -1,10 +1,12 @@
+const axios = require('axios');
 const crypto = require('crypto');
 const db = require('../database');
 const { writeLog, updateLog, getUserData } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
 const { parseError } = require('../lib/lib');
-const { getFirstDayOfWeek, getFirstDayOfNextMonth } = require('../lib/dates');
+const { getFirstDayOfNextMonth } = require('../lib/dates');
 const REF_FEE = process.env.REF_FEE;
+const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY;
 
 const generateRef = async () => {
   let ref_code = crypto.randomBytes(3).toString('hex');
@@ -133,6 +135,28 @@ const getRefTable = async (orders, ref_fee) => {
   const totals = { wallets, transactions, available, nextUpdate };
 
   return { refTable: result, totals };
+};
+
+const verifyCaptchaToken = async (token) => {
+  const verificationURL = 'https://www.google.com/recaptcha/api/siteverify';
+
+  try {
+    const response = await axios.post(verificationURL, null, {
+      params: {
+        secret: RECAPTCHA_SECRET_KEY,
+        response: token,
+      },
+    });
+
+    if (response.data.success) {
+      return true;
+    } else {
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
 };
 
 class UserController {
@@ -358,6 +382,43 @@ class UserController {
         success: false,
         error: e?.response?.data?.error?.message,
         sessionInfo,
+      });
+    }
+  }
+
+  async addAmbassador(req, res) {
+    const logId = await writeLog({
+      action: 'addAmbassador',
+      status: 'in progress',
+      req,
+    });
+    const { captcha, agreement, ...createBody } = req.body;
+
+    const isCaptchaValid = await verifyCaptchaToken(captcha);
+
+    if (!isCaptchaValid) {
+      updateLog(logId, { status: 'failed', error: 'Invalid CAPTCHA token' });
+      res.json({ success: false, error: 'Invalid CAPTCHA token' });
+      return;
+    }
+
+    try {
+      await db.models.Ambassador.create(createBody);
+      telegram.send(
+        `New ambassador registered.\nName: ${createBody.name}\nCountry: ${
+          createBody.country
+        }\nPhone: ${createBody.phone}\nWallet: ${createBody.wallet}${
+          createBody.experience ? `\nExperience: ${createBody.experience}` : ''
+        }${createBody.link ? `\nLink: ${createBody.link}` : ''}`
+      );
+      updateLog(logId, { status: 'success' });
+      res.json({ success: true });
+    } catch (e) {
+      console.log(e);
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.json({
+        success: false,
+        error: e?.response?.data?.error?.message,
       });
     }
   }
