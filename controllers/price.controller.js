@@ -44,7 +44,6 @@ class PriceController {
       req,
     });
     let { tokenSymbol } = req.query;
-    // TODO no such token in derebit
     tokenSymbol = tokenSymbol === 'WBTC' ? 'BTC' : tokenSymbol;
     axios
       .get(
@@ -87,7 +86,6 @@ class PriceController {
       req,
     });
     let { tokenSymbol } = req.query;
-    // TODO no such token in derebit
     tokenSymbol = tokenSymbol === 'WBTC' ? 'BTC' : tokenSymbol;
     axios
       .get(

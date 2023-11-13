@@ -5,6 +5,11 @@ module.exports = {
   country: DataTypes.STRING,
   phone: DataTypes.STRING,
   experience: DataTypes.STRING,
-  wallet: DataTypes.STRING,
+  wallet: {
+    type: DataTypes.STRING,
+    set(value) {
+      this.setDataValue('wallet', value.toLowerCase());
+    },
+  },
   link: DataTypes.STRING,
 };

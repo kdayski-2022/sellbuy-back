@@ -30,7 +30,6 @@ class StrikeController {
       }
       updateLog(logId, { status: 'success' });
       res.json({ success: true, data: {}, sessionInfo });
-      //TODO Вытащить все старйки интересующих нас цен
     } catch (e) {
       updateLog(logId, { status: 'failed', error: parseError(e) });
       res.json({ success: false, data: null, sessionInfo });

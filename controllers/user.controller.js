@@ -1,12 +1,23 @@
 const axios = require('axios');
 const crypto = require('crypto');
+const Web3 = require('web3');
 const db = require('../database');
 const { writeLog, updateLog, getUserData } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
 const { parseError } = require('../lib/lib');
 const { getFirstDayOfNextMonth } = require('../lib/dates');
+const ReferralAbi = require('../abi/Referral.json');
+const {
+  CHAIN_NETWORKS,
+  REFERRAL_CONTRACT_ADDRESS,
+  TOKEN_ADDRESS,
+} = require('../config/network');
+const { INFURA_PROVIDERS } = require('../config/infura');
+const Eth = require('../lib/etherscan');
+
 const REF_FEE = process.env.REF_FEE;
 const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY;
+const DB_ENV = process.env.DB_ENV;
 
 const generateRef = async () => {
   let ref_code = crypto.randomBytes(3).toString('hex');
@@ -67,17 +78,64 @@ const updateUser = async (user, data) => {
   }
 };
 
-const getReferralPayouts = async (referrals) => {
-  const referralsPayouts = [];
+const getReferrals = async (address) => {
+  address = address.toLowerCase();
+  let ref;
+  let user = await db.models.User.findOne({
+    where: {
+      address,
+    },
+  });
+  if (!user) {
+    user = await createUser(address);
+  }
+  ref = user.ref_code;
+  const referrals = await db.models.User.findAll({
+    where: {
+      ref_user_id: user.id,
+    },
+  });
+  const referralOrders = [];
   for (const referral of referrals) {
     const payouts = await db.models.ReferralPayout.findAll({
       where: {
         address: referral.address,
       },
     });
-    referralsPayouts.push(...payouts);
+    referralOrders.push(...payouts);
   }
-  return referralsPayouts;
+  return { referralOrders, ref, user };
+};
+
+const getReferralContractBalance = async (address) => {
+  const chain_id =
+    DB_ENV === 'production' ? CHAIN_NETWORKS.Arbitrum : CHAIN_NETWORKS.Mumbai;
+
+  const web3 = await new Web3(
+    new Web3.providers.HttpProvider(INFURA_PROVIDERS[chain_id])
+  );
+  const contract = new web3.eth.Contract(
+    ReferralAbi,
+    REFERRAL_CONTRACT_ADDRESS[chain_id]
+  );
+
+  let balance = await contract.methods.balanceOf(address).call();
+  balance = Eth.tokenFromWei(balance, TOKEN_ADDRESS[chain_id].USDC, chain_id);
+  return balance;
+};
+
+const getReferralPayouts = async (address) => {
+  const { referralOrders, ref, user } = await getReferrals(address);
+  const orders = await getOrders(referralOrders);
+  const { refTable, totals } = await getRefTable(orders, user.ref_fee);
+  const balance = await getReferralContractBalance(address);
+
+  return {
+    ref,
+    referrals: refTable,
+    totals,
+    balance,
+  };
 };
 
 const getOrders = async (referralsPayouts) => {
@@ -103,13 +161,17 @@ const getRefTable = async (orders, ref_fee) => {
   for (const order of orders) {
     if (order && (order.status === 'approved' || order.status === 'created')) {
       const address = order.from;
-      const appRevenue =
+      let appRevenue =
         (order.recieve / order.commission) * (1 - order.commission);
-      const earn = (appRevenue / 100) * Number(ref_fee);
+      let earn = (appRevenue / 100) * Number(ref_fee);
+
+      appRevenue = appRevenue.toFixed(2);
+      earn = earn.toFixed(2);
+
       refTable.push({
         address,
         earn,
-        paid: order.referral_paid ? earn : 0,
+        paid: order.referral_paid ? earn : '0.00',
       });
     }
   }
@@ -119,8 +181,12 @@ const getRefTable = async (orders, ref_fee) => {
       (i) => i.address.toLowerCase() === item.address.toLowerCase()
     );
     if (index !== -1) {
-      result[index].earn += item.earn;
-      result[index].paid += item.paid;
+      result[index].earn = (
+        Number(result[index].earn) + Number(item.earn)
+      ).toFixed(2);
+      result[index].paid = (
+        Number(result[index].paid) + Number(item.paid)
+      ).toFixed(2);
     } else {
       result.push(item);
     }
@@ -128,9 +194,13 @@ const getRefTable = async (orders, ref_fee) => {
 
   const wallets = result.length;
   const transactions = refTable.length;
-  const totalEarn = result.reduce((acc, obj) => acc + obj.earn, 0);
-  const totalPaid = result.reduce((acc, obj) => acc + obj.paid, 0);
-  const available = totalEarn - totalPaid;
+  const totalEarn = result
+    .reduce((acc, obj) => Number(acc) + Number(obj.earn), 0)
+    .toFixed(2);
+  const totalPaid = result
+    .reduce((acc, obj) => Number(acc) + Number(obj.paid), 0)
+    .toFixed(2);
+  const available = (Number(totalEarn) - Number(totalPaid)).toFixed(2);
   const nextUpdate = getFirstDayOfNextMonth();
   const totals = { wallets, transactions, available, nextUpdate };
 
@@ -263,37 +333,16 @@ class UserController {
       sessionInfo,
       req,
     });
-    let { address } = req.params;
-    address = address.toLowerCase();
-    try {
-      let ref;
-      let user = await db.models.User.findOne({
-        where: {
-          address,
-        },
-      });
-      if (!user) {
-        user = await createUser(address);
-      }
-      ref = user.ref_code;
 
-      const referrals = await db.models.User.findAll({
-        where: {
-          ref_user_id: user.id,
-        },
-      });
-      const referralsPayouts = await getReferralPayouts(referrals);
-      const orders = await getOrders(referralsPayouts);
-      const { refTable, totals } = await getRefTable(orders, user.ref_fee);
+    try {
+      let { address } = req.params;
+
+      const data = await getReferralPayouts(address);
 
       updateLog(logId, { status: 'success' });
       res.json({
         success: true,
-        data: {
-          ref,
-          referrals: refTable,
-          totals,
-        },
+        data,
         sessionInfo,
       });
     } catch (e) {

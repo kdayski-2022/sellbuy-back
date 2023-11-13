@@ -12,8 +12,7 @@ const geoip = require('fast-geoip');
 const { Socket } = require('./socket');
 const { postOrder } = require('./lib/order');
 const { checkState } = require('./lib/state');
-const { listenForPayout, resetOrders } = require('./lib/payoutListener');
-const { default: axios } = require('axios');
+const { listenForPayout } = require('./lib/payoutListener');
 const { INFURA_PROVIDERS } = require('./config/infura');
 
 const {
@@ -49,11 +48,7 @@ app.use(async (req, res, next) => {
     req.header('X-Real-IP') || req.connection.remoteAddress || '';
   const origin = req.header('origin');
   const geo = await geoip.lookup(clientIP);
-  if (
-    geo &&
-    geo.country === 'US' &&
-    (origin !== 'http://localhost:5112' || origin !== 'https://tymio.com')
-  ) {
+  if (geo && geo.country === 'US' && origin !== 'https://tymio.com') {
     return res.status(418).json({
       code: 418,
       success: false,
@@ -215,28 +210,6 @@ db.connection
             }
           }, 10000);
 
-          // const orders = await db.models.Order.findAll({
-          //   where: { status: 'pending_approve' },
-          // });
-          // try {
-          //   const res = await axios.post(
-          //     'http://dev.fanil.ru:5111/api/expiration',
-          //     {
-          //       orders,
-          //       tx: '0x022b935c8ae6e92ca72903d73e2ef48e573d83cd037cfc25aec927105d3c274c',
-          //     },
-          //     {
-          //       headers: {
-          //         Accept: 'application/json',
-          //         'Content-Type': 'application/json',
-          //       },
-          //     }
-          //   );
-          //   console.log(res);
-          // } catch (e) {
-          //   console.log(e);
-          // }
-          // resetOrders();
           // ! auto order complete
           setInterval(async () => {
             try {

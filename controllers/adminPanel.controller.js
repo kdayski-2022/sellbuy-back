@@ -1,4 +1,5 @@
 const axios = require('axios');
+const crypto = require('crypto');
 const Web3 = require('web3');
 const db = require('../database');
 const md5 = require('md5');
@@ -8,11 +9,22 @@ const isEmpty = require('is-empty');
 const session = require('./session.controller.js');
 
 const { INFURA_PROVIDERS } = require('../config/infura');
-const { DECIMALS } = require('../config/network');
+const {
+  DECIMALS,
+  TOKEN_ADDRESS,
+  CHAIN_NETWORKS,
+  REFERRAL_CONTRACT_ADDRESS,
+  SERVICE_WALLET_ADDRESS,
+} = require('../config/network');
+const ReferralAbi = require('../abi/Referral.json');
 
 const { writeLog, updateLog } = require('../lib/logger');
 const { calculatePayouts, getPayin } = require('../lib/order');
-const { parseError } = require('../lib/lib');
+const {
+  parseError,
+  convertFloatToBnString,
+  removeLeadingZeros,
+} = require('../lib/lib');
 const { getSubject, getDealExpirationBody, sendMail } = require('../lib/email');
 const {
   formatToAdminStatistics,
@@ -25,12 +37,14 @@ const {
   formatToWebStatistics,
 } = require('../lib/stats');
 const { getConfigByEnv } = require('../lib/config');
+const Eth = require('../lib/etherscan.js');
 
 dotenv.config();
 const md5Salt = process.env.md5Salt;
 const API_URL = process.env.API_URL;
 const REF_FEE = process.env.REF_FEE;
 const DB_ENV = process.env.DB_ENV;
+const METAMASK_PRIV_KEY = process.env.METAMASK_PRIV_KEY;
 
 const getCurrentPrice = async (tokenSymbol) => {
   try {
@@ -143,6 +157,129 @@ const customFilters = async (orders, filters) => {
   } catch (e) {
     console.log(e);
     return orders;
+  }
+};
+
+const generateRef = async () => {
+  let ref_code = crypto.randomBytes(3).toString('hex');
+  let user = await db.models.User.findOne({
+    where: {
+      ref_code,
+    },
+  });
+  if (!user) {
+    return ref_code;
+  } else {
+    for (let i = 0; i < 5; i++) {
+      ref_code = crypto.randomBytes(3).toString('hex');
+      user = await db.models.User.findOne({
+        where: {
+          ref_code,
+        },
+      });
+      if (!user) {
+        break;
+      }
+    }
+    return ref_code;
+  }
+};
+const createUser = async (address) => {
+  try {
+    ref_code = await generateRef();
+    await db.models.User.create({
+      address,
+      ref_code,
+    });
+    const user = await db.models.User.findOne({
+      where: {
+        address,
+        ref_code,
+      },
+    });
+    console.log(`New user ${address} created`);
+    return user;
+  } catch (e) {
+    throw e;
+  }
+};
+
+const getExpirationReferralPayout = async (orders) => {
+  try {
+    const addresses = [];
+    let amount = [];
+    for (const order of orders) {
+      const address = order.from;
+      let user = await db.models.User.findOne({ where: { address } });
+      if (!user) user = await createUser(address);
+      if (user.ref_user_id) {
+        const ambassador = await db.models.User.findOne({
+          where: { id: user.ref_user_id },
+        });
+        const ref_fee = ambassador.ref_fee;
+        let appRevenue =
+          (order.recieve / order.commission) * (1 - order.commission);
+        let payout = (appRevenue / 100) * Number(ref_fee);
+        appRevenue = appRevenue.toFixed(2);
+        payout = payout.toFixed(2);
+
+        const contains = addresses.findIndex(
+          (address) => address === ambassador.address
+        );
+        if (contains === -1) {
+          addresses.push(ambassador.address);
+          amount.push(payout);
+        } else {
+          amount[contains] = (
+            Number(amount[contains]) + Number(payout)
+          ).toFixed(2);
+        }
+      }
+    }
+    addresses.forEach((address, index) => {
+      db.models.ReferralContractIncome.create({
+        address,
+        amount: amount[index],
+      });
+    });
+    amount = await Promise.all(
+      amount.map((item) =>
+        removeLeadingZeros(convertFloatToBnString(item, DECIMALS.USDC))
+      )
+    );
+    return { addresses, amount };
+  } catch (e) {
+    throw e;
+  }
+};
+
+const addReferralBalance = async ({ addresses, amount }) => {
+  try {
+    const chain_id =
+      DB_ENV === 'production' ? CHAIN_NETWORKS.Arbitrum : CHAIN_NETWORKS.Mumbai;
+
+    const web3 = await new Web3(
+      new Web3.providers.HttpProvider(INFURA_PROVIDERS[chain_id])
+    );
+    await web3.eth.accounts.wallet.add(METAMASK_PRIV_KEY);
+    const contract = new web3.eth.Contract(
+      ReferralAbi,
+      REFERRAL_CONTRACT_ADDRESS[chain_id],
+      {
+        from: SERVICE_WALLET_ADDRESS[chain_id],
+      }
+    );
+    const gasEstimate = await contract.methods
+      .addBalances(addresses, amount)
+      .estimateGas({ from: SERVICE_WALLET_ADDRESS[chain_id] });
+
+    const gasLimit = Math.ceil(gasEstimate * 1.1);
+    await contract.methods.addBalances(addresses, amount).send({
+      from: SERVICE_WALLET_ADDRESS[chain_id],
+      gasLimit: gasLimit,
+    });
+  } catch (e) {
+    throw e;
   }
 };
 
@@ -401,6 +538,8 @@ class AdminPanel {
           const orderAttempt = await db.models.OrderAttempt.findOne({
             where: { id: orderDB.attempt_id },
           });
+          if (!orderAttempt)
+            throw new Error('Order attempt not found while sending email');
           orderDB.bid_price = orderAttempt.bid_price;
           orderDB.estimated_delivery_price =
             orderAttempt.estimated_delivery_price;
@@ -440,6 +579,18 @@ class AdminPanel {
           console.log(e);
           console.log('Send email error');
         }
+      }
+      try {
+        const referralPayout = await getExpirationReferralPayout(orders);
+        await addReferralBalance(referralPayout);
+        for (const order of orders) {
+          await db.models.ReferralPayout.update(
+            { paid: true },
+            { where: { order_id: order.id } }
+          );
+        }
+      } catch (e) {
+        console.log('While adding referral contract balance error', e);
       }
       res.json({
         success: true,
@@ -696,7 +847,9 @@ class AdminPanel {
         const parent = await db.models.User.findOne({
           where: { id: user.ref_user_id },
         });
-        const ref_fee = parent.ref_fee || REF_FEE || 0;
+        let ref_fee = 0;
+        if (parent && parent.ref_fee) ref_fee = parent.ref_fee;
+        else ref_fee = REF_FEE || 0;
         const order = await db.models.Order.findOne({
           where: { id: referralPayout.order_id },
         });

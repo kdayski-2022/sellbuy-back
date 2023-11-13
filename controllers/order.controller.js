@@ -38,7 +38,6 @@ class OrderController {
     });
     const { period, price, amount } = req.query;
     let { tokenSymbol } = req.query;
-    // TODO no such token in derebit
     tokenSymbol = tokenSymbol === 'WBTC' ? 'BTC' : tokenSymbol;
     axios
       .get(
