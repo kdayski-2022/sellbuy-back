@@ -16,9 +16,12 @@ db.connection.authenticate().then(async () => {
         where: { id: referralPayout.order_id },
       });
       if (order && order.status === 'approved') {
-        // await db.models.ReferralPayout.update({paid: true}, {
-        //   where: { id: referralPayout.id },
-        // });
+        await db.models.ReferralPayout.update(
+          { paid: true },
+          {
+            where: { id: referralPayout.id },
+          }
+        );
         validPayouts.push(referralPayout);
       }
     }
