@@ -501,8 +501,9 @@ class AdminPanel {
       req,
     });
 
-    const { orders, tx } = req.body;
+    const { ids, tx } = req.body;
     try {
+      const orders = await db.models.Order.findAll({ where: { id: ids } });
       for (const order of orders) {
         let payout_usdc, payout_base;
         if (order.payout_currency === order.token_symbol) {
