@@ -458,7 +458,8 @@ class UserController {
           createBody.country
         }\nPhone: ${createBody.phone}\nWallet: ${createBody.wallet}${
           createBody.experience ? `\nExperience: ${createBody.experience}` : ''
-        }${createBody.link ? `\nLink: ${createBody.link}` : ''}`
+        }${createBody.link ? `\nLink: ${createBody.link}` : ''}`,
+        'support'
       );
       updateLog(logId, { status: 'success' });
       res.json({ success: true });
