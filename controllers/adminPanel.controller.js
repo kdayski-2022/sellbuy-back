@@ -208,7 +208,9 @@ const getExpirationReferralPayout = async (orders) => {
   try {
     const addresses = [];
     let amount = [];
+    let chain_id;
     for (const order of orders) {
+      chain_id = order.chain_id;
       const address = order.from;
       let user = await db.models.User.findOne({ where: { address } });
       if (!user) user = await createUser(address);
@@ -240,6 +242,7 @@ const getExpirationReferralPayout = async (orders) => {
       db.models.ReferralContractIncome.create({
         address,
         amount: amount[index],
+        chain_id,
       });
     });
     amount = await Promise.all(
@@ -697,10 +700,8 @@ class AdminPanel {
       });
 
     const {
-      _end = 10,
       _order = 'ASC',
       _sort = 'id',
-      _start = 0,
       execute_date,
       order_executed,
       order_complete,
@@ -713,8 +714,6 @@ class AdminPanel {
     where = token_symbol ? { ...where, token_symbol } : where;
     let orders = await db.models.Order.findAndCountAll({
       where,
-      offset: _start,
-      limit: _end,
       order: [[_sort, _order]],
     });
 

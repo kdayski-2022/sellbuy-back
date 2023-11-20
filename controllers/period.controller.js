@@ -100,8 +100,9 @@ class PeriodController {
             ({ estimated_delivery_price, bid_price, instrument_name }) => {
               const [_, sortedDataUnderlying_index] =
                 instrument_name.split('-');
-              const targetPeriod = Date.parse(sortedDataUnderlying_index);
-
+              let targetPeriod = Date.parse(sortedDataUnderlying_index);
+              targetPeriod = new Date(targetPeriod);
+              targetPeriod.setHours(targetPeriod.getHours() + 11);
               periods.push({
                 title: `${getDaysDifference(targetPeriod)} days`,
                 timestamp: targetPeriod,
@@ -131,15 +132,13 @@ class PeriodController {
                 }
                 if (user) commission = user.commission;
                 const recieve =
-                  estimated_delivery_price * bid_price * amount * commission;
+                  estimated_delivery_price *
+                  bid_price *
+                  Number(amount) *
+                  commission;
                 const percent = (recieve / price) * 100;
                 const days = getDaysDifference(timestamp);
-                const apr = getApr(
-                  recieve,
-                  price,
-                  amount,
-                  days
-                );
+                const apr = getApr(recieve, price, amount, days);
                 const earnPercent =
                   Math.round((recieve / (amount * price)) * 100 * 100) / 100;
                 if (!Math.floor(recieve))

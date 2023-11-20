@@ -44,4 +44,5 @@ module.exports = {
   commission: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0.7 },
   chain_id: DataTypes.INTEGER,
   token_symbol: DataTypes.STRING,
+  apr: DataTypes.FLOAT,
 };

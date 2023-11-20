@@ -1,7 +1,8 @@
 const db = require('../database');
 const { writeLog, updateLog } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
-const { parseError, getDaysDifference } = require('../lib/lib');
+const { parseError } = require('../lib/lib');
+const { getDaysDifference } = require('../lib/dates');
 
 const getWeekIndex = (currentDate) => {
   startDate = new Date(currentDate.getFullYear(), 0, 1);
