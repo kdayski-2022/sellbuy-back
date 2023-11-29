@@ -352,7 +352,12 @@ db.connection
                               { address: tx.from },
                             ],
                           },
-                          { hash: null },
+                          {
+                            [db.Op.or]: [
+                              { hash: { [db.Op.ne]: tx.hash } },
+                              { hash: null },
+                            ],
+                          },
                           { direction: tx.direction },
                           { period: { [db.Op.gt]: new Date() } },
                           { createdAt: { [db.Op.lt]: tx.createdAt } },

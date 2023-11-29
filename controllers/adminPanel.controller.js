@@ -508,28 +508,14 @@ class AdminPanel {
     try {
       const orders = await db.models.Order.findAll({ where: { id: ids } });
       for (const order of orders) {
-        let payout_usdc, payout_base;
-        if (order.payout_currency === order.token_symbol) {
-          payout_usdc = (order.payout * order.end_index_price).toFixed(
-            DECIMALS['USDC']
-          );
-          payout_base = parseFloat(order.payout).toFixed(
-            DECIMALS[order.token_symbol]
-          );
-        }
-        if (order.payout_currency === 'USDC') {
-          payout_usdc = parseFloat(order.payout).toFixed(DECIMALS['USDC']);
-          payout_base = (order.payout / order.end_index_price).toFixed(
-            DECIMALS[order.token_symbol]
-          );
-        }
+        const { USDCToPay, BaseToPay } = await calculatePayouts(order);
         await db.models.Order.update(
           {
             order_complete: true,
             status: 'approved',
             settlement_date: new Date(),
-            payout_usdc,
-            payout_base,
+            payout_usdc: USDCToPay,
+            payout_base: BaseToPay,
             payout_tx: tx,
           },
           { where: { id: order.id } }

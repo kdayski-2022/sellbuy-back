@@ -12,4 +12,9 @@ module.exports = {
   ref_fee: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 11.5 },
   nick_name: DataTypes.STRING,
   commission: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0.7 },
+  chat_access: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+  },
 };
