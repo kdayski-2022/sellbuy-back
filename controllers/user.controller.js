@@ -523,8 +523,7 @@ class UserController {
         const user = await db.models.User.findOne({
           where: { address: item.address },
         });
-        leaderboard[index].privilege =
-          user.commission > USER_COMMISSION ? true : false;
+        leaderboard[index].club_member = user.club_member;
       }
 
       updateLog(logId, { status: 'success' });

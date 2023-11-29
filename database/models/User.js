@@ -17,4 +17,9 @@ module.exports = {
     allowNull: false,
     defaultValue: true,
   },
+  club_member: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
 };
