@@ -488,7 +488,6 @@ class UserController {
       const createdAt = new Date(Number(rangeTime) + 1000 * 60 * 60 * 5);
       const orders = await db.models.Order.findAll({
         where: {
-          status: 'approved',
           createdAt: {
             [db.Op.gte]: createdAt,
           },
