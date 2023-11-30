@@ -21,6 +21,7 @@ const {
   CHAIN_LIST_ENV,
   PAYIN_TOKEN_ADDRESS_LIST,
   VALID_AMOUNT,
+  CHAIN_NETWORKS,
 } = require('./config/network');
 const Eth = require('./lib/etherscan');
 const { isIterable } = require('./lib/lib');
@@ -312,7 +313,11 @@ db.connection
                     tx.direction = 'sell';
                   } else {
                     token = {
-                      tokenSymbol: 'USDC',
+                      tokenSymbol:
+                        chain_id === CHAIN_NETWORKS.Arbitrum ||
+                        chain_id === CHAIN_NETWORKS['Arbitrum Goerli']
+                          ? 'USDC.e'
+                          : 'USDC',
                       tokenAddress: WITHDRAWAL_TOKEN_ADDRESS[chain_id],
                     };
                     tx.direction = 'buy';
