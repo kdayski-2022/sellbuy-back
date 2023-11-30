@@ -113,6 +113,18 @@ class PeriodController {
             }
           );
 
+          let user = null;
+          let commission = USER_COMMISSION;
+
+          if (sessionInfo.userAddress) {
+            user = await db.models.User.findOne({
+              where: { address: sessionInfo.userAddress.toLowerCase() },
+            });
+          }
+          if (user) commission = user.commission;
+
+          const aprBonus = commission > USER_COMMISSION;
+
           await Promise.all(
             periods.map(
               async ({
@@ -122,15 +134,6 @@ class PeriodController {
                 bid_price,
                 instrument_name,
               }) => {
-                let user = null;
-                let commission = USER_COMMISSION;
-
-                if (sessionInfo.userAddress) {
-                  user = await db.models.User.findOne({
-                    where: { address: sessionInfo.userAddress.toLowerCase() },
-                  });
-                }
-                if (user) commission = user.commission;
                 const recieve =
                   estimated_delivery_price *
                   bid_price *
@@ -171,7 +174,11 @@ class PeriodController {
           );
 
           updateLog(logId, { status: 'success' });
-          res.json({ success: true, data: { periods: result }, sessionInfo });
+          res.json({
+            success: true,
+            data: { periods: result, aprBonus },
+            sessionInfo,
+          });
         } catch (e) {
           console.log(e);
           updateLog(logId, { status: 'failed', error: parseError(e) });

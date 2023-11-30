@@ -56,6 +56,7 @@ router.get('/chat', chatController.getChat);
 router.get('/ref/:address', userController.getRef);
 router.post('/ref_code/:ref_code', userController.addReferral);
 router.post('/utm', userController.addUtm);
+router.get('/leaderboard', userController.getLeaderboard);
 router.get('/subscribtion/:address', userController.getSubscription);
 router.post('/subscribtion/:address', userController.postSubscription);
 router.get('/airdrop', airdropController.getAirdrop);

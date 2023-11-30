@@ -14,6 +14,7 @@ const {
 } = require('../config/network');
 const { INFURA_PROVIDERS } = require('../config/infura');
 const Eth = require('../lib/etherscan');
+const { USER_COMMISSION } = require('../config/constants.json');
 
 const REF_FEE = process.env.REF_FEE;
 const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY;
@@ -469,6 +470,75 @@ class UserController {
       res.json({
         success: false,
         error: e?.response?.data?.error?.message,
+      });
+    }
+  }
+
+  async getLeaderboard(req, res) {
+    const sessionInfo = await checkSession(req);
+    const logId = await writeLog({
+      action: 'getLeaderboard',
+      status: 'in progress',
+      sessionInfo,
+      req,
+    });
+
+    try {
+      const { rangeTime } = req.query;
+      const createdAt = new Date(Number(rangeTime) + 1000 * 60 * 60 * 5);
+      const orders = await db.models.Order.findAll({
+        where: {
+          createdAt: {
+            [db.Op.gte]: createdAt,
+          },
+        },
+      });
+      let leaderboard = [];
+      for (const order of orders) {
+        const leaderboardItemIndex = leaderboard.findIndex(
+          (item) => item.address === order.from
+        );
+        if (leaderboardItemIndex === -1)
+          leaderboard.push({
+            address: order.from,
+            earned: order.recieve,
+            count: 1,
+            executed: order.order_executed ? 1 : 0,
+          });
+        else {
+          leaderboard[leaderboardItemIndex].earned += order.recieve;
+          leaderboard[leaderboardItemIndex].count += 1;
+          if (order.order_executed)
+            leaderboard[leaderboardItemIndex].executed += 1;
+        }
+      }
+      leaderboard.sort((a, b) => {
+        if (a.earned < b.earned) return 1;
+        if (a.earned > b.earned) return -1;
+        return 0;
+      });
+      leaderboard = leaderboard.slice(0, 10);
+      for (const [index, item] of leaderboard.entries()) {
+        const user = await db.models.User.findOne({
+          where: { address: item.address },
+        });
+        leaderboard[index].club_member = user.club_member;
+      }
+
+      updateLog(logId, { status: 'success' });
+      res.json({
+        success: true,
+        data: { leaderboard },
+        sessionInfo,
+      });
+    } catch (e) {
+      console.log(e);
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.json({
+        success: false,
+        data: null,
+        error: e?.response?.data?.error?.message,
+        sessionInfo,
       });
     }
   }

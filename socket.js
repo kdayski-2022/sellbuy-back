@@ -15,6 +15,7 @@ const { getChat, getChatBySessionToken, readChat } = require('./lib/chat');
 const SOCKET_PORT = process.env.SOCKET_PORT;
 const NEW_CHAT_MESSAGE_EVENT = 'newChatMessage';
 const OPEN_CHAT = 'openChat';
+const ERROR = 'error';
 
 function Socket() {
   io.on('connection', async (socket) => {
@@ -27,24 +28,35 @@ function Socket() {
     io.in(sessionToken).emit('init', chat ? JSON.parse(chat.messages) : []);
 
     socket.on(NEW_CHAT_MESSAGE_EVENT, async (data) => {
+      let chat_access = true;
       const { sender, message, unread } = data;
       const { userAddress } = await db.models.UserSession.findOne({
         where: { sessionToken },
       });
       const opts = { sender, unread, message, userAddress, sessionToken };
+      if (userAddress) {
+        const user = await db.models.User.findOne({
+          where: { address: userAddress },
+        });
+        chat_access = user.chat_access;
+      }
 
-      await telegram.sendToSupport({
-        userAddress,
-        message,
-        sessionToken,
-      });
-      chat = await getChatBySessionToken(sessionToken);
-      chat = await getChat(chat, opts);
+      if (chat_access) {
+        await telegram.sendToSupport({
+          userAddress,
+          message,
+          sessionToken,
+        });
+        chat = await getChatBySessionToken(sessionToken);
+        chat = await getChat(chat, opts);
 
-      io.in(sessionToken).emit(
-        NEW_CHAT_MESSAGE_EVENT,
-        JSON.parse(chat.messages)
-      );
+        io.in(sessionToken).emit(
+          NEW_CHAT_MESSAGE_EVENT,
+          JSON.parse(chat.messages)
+        );
+      } else {
+        io.in(sessionToken).emit(ERROR, 'You are banned');
+      }
     });
 
     socket.on(OPEN_CHAT, async () => {
