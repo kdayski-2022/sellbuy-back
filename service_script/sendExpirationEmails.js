@@ -42,7 +42,7 @@ db.connection.authenticate().then(async () => {
             orders: userCompleteOrders.length,
           };
           const subject = getSubject(subject_title);
-          const html = getDealExpirationBody(item);
+          const html = getDealExpirationBody(subscription, item);
           await sendMail([item.subscription.email], subject, '', html);
           console.log([item.subscription.email]);
         }

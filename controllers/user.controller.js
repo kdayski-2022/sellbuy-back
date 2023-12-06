@@ -1,10 +1,10 @@
-const axios = require('axios');
 const crypto = require('crypto');
+const md5 = require('md5');
 const Web3 = require('web3');
 const db = require('../database');
 const { writeLog, updateLog, getUserData } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
-const { parseError } = require('../lib/lib');
+const { parseError, verifyCaptchaToken } = require('../lib/lib');
 const { getFirstDayOfNextMonth } = require('../lib/dates');
 const ReferralAbi = require('../abi/Referral.json');
 const {
@@ -15,9 +15,11 @@ const {
 const { INFURA_PROVIDERS } = require('../config/infura');
 const Eth = require('../lib/etherscan');
 const { USER_COMMISSION } = require('../config/constants.json');
+const { ACTIVITY_NAMES, ACTIVITY_VALUES } = require('../enum/enum');
+const { createOrUpdateUserPointsHistory } = require('../lib/user');
 
+const md5Salt = process.env.md5Salt;
 const REF_FEE = process.env.REF_FEE;
-const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY;
 const DB_ENV = process.env.DB_ENV;
 
 const generateRef = async () => {
@@ -52,6 +54,7 @@ const createUser = async (address) => {
       address,
       ref_code,
     });
+    await createOrUpdateUserPointsHistory(address);
     const user = await db.models.User.findOne({
       where: {
         address,
@@ -208,28 +211,6 @@ const getRefTable = async (orders, ref_fee) => {
   return { refTable: result, totals };
 };
 
-const verifyCaptchaToken = async (token) => {
-  const verificationURL = 'https://www.google.com/recaptcha/api/siteverify';
-
-  try {
-    const response = await axios.post(verificationURL, null, {
-      params: {
-        secret: RECAPTCHA_SECRET_KEY,
-        response: token,
-      },
-    });
-
-    if (response.data.success) {
-      return true;
-    } else {
-      return false;
-    }
-  } catch (error) {
-    console.error(error);
-    return false;
-  }
-};
-
 class UserController {
   async getSubscription(req, res) {
     const sessionInfo = await checkSession(req);
@@ -288,6 +269,7 @@ class UserController {
     const { address } = req.params;
     const { subsctiptions, email, telegram } = req.body;
     const { news, transaction_notifications, terms } = subsctiptions;
+    const address_hash = md5(md5Salt + address.toLowerCase());
     try {
       let subscription = await db.models.UserSubscription.findOne({
         where: {
@@ -298,12 +280,20 @@ class UserController {
         await db.models.UserSubscription.create({
           address: address.toLowerCase(),
           email,
+          address_hash,
           telegram,
         });
       }
 
       await db.models.UserSubscription.update(
-        { news, transaction_notifications, email, telegram, terms },
+        {
+          address_hash,
+          news,
+          transaction_notifications,
+          email,
+          telegram,
+          terms,
+        },
         { where: { address: address.toLowerCase() } }
       );
 
@@ -474,6 +464,40 @@ class UserController {
     }
   }
 
+  async addClubMember(req, res) {
+    const logId = await writeLog({
+      action: 'addClubMember',
+      status: 'in progress',
+      req,
+    });
+    const { captcha, agreement, ...createBody } = req.body;
+
+    const isCaptchaValid = await verifyCaptchaToken(captcha);
+
+    if (!isCaptchaValid) {
+      updateLog(logId, { status: 'failed', error: 'Invalid CAPTCHA token' });
+      res.json({ success: false, error: 'Invalid CAPTCHA token' });
+      return;
+    }
+
+    try {
+      await db.models.ClubMember.create(createBody);
+      telegram.send(
+        `New club member requested.\nName: ${createBody.name}\nWallet: ${createBody.wallet}\nAlias: ${createBody.alias}\nEmail: ${createBody.email}`,
+        'support'
+      );
+      updateLog(logId, { status: 'success' });
+      res.json({ success: true });
+    } catch (e) {
+      console.log(e);
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.json({
+        success: false,
+        error: e?.response?.data?.error?.message,
+      });
+    }
+  }
+
   async getLeaderboard(req, res) {
     const sessionInfo = await checkSession(req);
     const logId = await writeLog({
@@ -529,6 +553,83 @@ class UserController {
       res.json({
         success: true,
         data: { leaderboard },
+        sessionInfo,
+      });
+    } catch (e) {
+      console.log(e);
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.json({
+        success: false,
+        data: null,
+        error: e?.response?.data?.error?.message,
+        sessionInfo,
+      });
+    }
+  }
+
+  async unsubscribe(req, res) {
+    const logId = await writeLog({
+      action: 'unsubscribe',
+      status: 'in progress',
+      req,
+    });
+
+    try {
+      const { hash } = req.params;
+      let message = '';
+      const subscription = await db.models.UserSubscription.findOne({
+        where: { address_hash: hash },
+      });
+      if (subscription && subscription.email) {
+        await db.models.UserSubscription.update(
+          {
+            email: '',
+            transaction_notifications: false,
+            news: false,
+            terms: false,
+          },
+          {
+            where: { id: subscription.id },
+          }
+        );
+        message =
+          '<html><head>Server Response</head><body><h1>You are successfully unsubscribed!</h1></body></html>';
+      } else {
+        message =
+          '<html><head>Server Response</head><body><h1>You are not subscribed!</h1></body></html>';
+      }
+
+      updateLog(logId, { status: 'success' });
+      res.send(message);
+    } catch (e) {
+      console.log(e);
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.send(
+        '<html><head>Server Response</head><body><h1>Something went wrong</h1></body></html>'
+      );
+    }
+  }
+
+  async getUserPoints(req, res) {
+    const sessionInfo = await checkSession(req);
+    const logId = await writeLog({
+      action: 'getUserPoints',
+      status: 'in progress',
+      sessionInfo,
+      req,
+    });
+
+    try {
+      const { address } = req.params;
+
+      const userPoints = await db.models.UserPointsHistory.sum('value', {
+        where: { address: address.toLowerCase() },
+      });
+
+      updateLog(logId, { status: 'success' });
+      res.json({
+        success: true,
+        data: { userPoints },
         sessionInfo,
       });
     } catch (e) {

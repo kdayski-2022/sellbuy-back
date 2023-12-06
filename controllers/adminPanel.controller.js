@@ -24,6 +24,7 @@ const {
   parseError,
   convertFloatToBnString,
   removeLeadingZeros,
+  verifyCaptchaToken,
 } = require('../lib/lib');
 const { getSubject, getDealExpirationBody, sendMail } = require('../lib/email');
 const {
@@ -38,6 +39,14 @@ const {
 } = require('../lib/stats');
 const { getConfigByEnv } = require('../lib/config');
 const Eth = require('../lib/etherscan.js');
+const { ACTIVITY_NAMES, ACTIVITY_VALUES } = require('../enum/enum.js');
+const {
+  createOrUpdateUserPointsHistory,
+  createAmountEarned,
+  createReferralAmountEarned,
+  createTimeOnPlatform,
+} = require('../lib/user.js');
+const { getDaysDifference } = require('../lib/dates.js');
 
 dotenv.config();
 const md5Salt = process.env.md5Salt;
@@ -56,6 +65,19 @@ const getCurrentPrice = async (tokenSymbol) => {
   } catch (e) {
     console.log(e);
     return 0;
+  }
+};
+
+const spliceForPagination = async (orders, pagination) => {
+  try {
+    orders.count = orders.rows.length;
+    if (!pagination) pagination = { _start: 0, _end: 10 };
+    const { _start, _end } = pagination;
+    orders.rows = orders.rows.slice(_start, _end);
+    return orders;
+  } catch (e) {
+    console.log(e);
+    return orders;
   }
 };
 
@@ -191,13 +213,13 @@ const createUser = async (address) => {
       address,
       ref_code,
     });
+    await createOrUpdateUserPointsHistory(address);
     const user = await db.models.User.findOne({
       where: {
         address,
         ref_code,
       },
     });
-    console.log(`New user ${address} created`);
     return user;
   } catch (e) {
     throw e;
@@ -224,6 +246,13 @@ const getExpirationReferralPayout = async (orders) => {
         let payout = (appRevenue / 100) * Number(ref_fee);
         appRevenue = appRevenue.toFixed(2);
         payout = payout.toFixed(2);
+
+        try {
+          await createReferralAmountEarned(ambassador.address, order.recieve);
+        } catch (e) {
+          console.log(e);
+          console.log('While adding referral points history error');
+        }
 
         const contains = addresses.findIndex(
           (address) => address === ambassador.address
@@ -288,10 +317,17 @@ const addReferralBalance = async ({ addresses, amount }) => {
 
 class AdminPanel {
   async login(req, res) {
-    const { username, password } = req.body;
+    const { username, password, captcha } = req.body;
     let allow = false;
     let accessToken;
     let manager;
+
+    // const isCaptchaValid = await verifyCaptchaToken(captcha);
+    // if (!isCaptchaValid) {
+    //   res.status(401).send('invalid CAPTCHA token');
+    //   return;
+    // }
+
     if (!isEmpty(username) && !isEmpty(password)) {
       manager = await db.models.Manager.findOne({
         where: {
@@ -522,6 +558,15 @@ class AdminPanel {
         );
 
         try {
+          await createAmountEarned(order.from, order.recieve);
+          const days = getDaysDifference(order.createdAt);
+          await createTimeOnPlatform(order.from, days);
+        } catch (e) {
+          console.log(e);
+          console.log('While adding user points history error');
+        }
+
+        try {
           const orderDB = await db.models.Order.findOne({
             where: { id: order.id },
           });
@@ -562,7 +607,7 @@ class AdminPanel {
             if (DB_ENV === 'development')
               orderDB.subscription.email = 'npoqpu2010@mail.ru';
             const subject = getSubject('transaction_notifications');
-            const html = getDealExpirationBody(orderDB);
+            const html = getDealExpirationBody(subscription, orderDB);
             await sendMail([orderDB.subscription.email], subject, '', html);
           }
         } catch (e) {
@@ -693,6 +738,8 @@ class AdminPanel {
       order_complete,
       chain_id,
       token_symbol,
+      _start,
+      _end,
     } = req.query;
 
     let where = order_complete ? { order_complete } : {};
@@ -708,7 +755,7 @@ class AdminPanel {
       order_executed,
     });
     orders = await setExtraFields(orders);
-    orders.count = orders.rows.length;
+    orders = await spliceForPagination(orders, { _start, _end });
 
     res.setHeader('Access-Control-Expose-Headers', 'X-Total-Count');
     res.setHeader('X-Total-Count', orders.count);

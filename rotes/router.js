@@ -54,6 +54,8 @@ router.get('/strikes', strikeController.getStrikes);
 router.get('/session', sessionController.create);
 router.get('/chat', chatController.getChat);
 router.get('/ref/:address', userController.getRef);
+router.get('/unsubscribe/:hash', userController.unsubscribe);
+router.get('/user_points/:address', userController.getUserPoints);
 router.post('/ref_code/:ref_code', userController.addReferral);
 router.post('/utm', userController.addUtm);
 router.get('/leaderboard', userController.getLeaderboard);
@@ -76,5 +78,6 @@ router.get(
 );
 router.get('/web/statistics', statsController.getWebStatistics);
 router.post('/ambassador', userController.addAmbassador);
+router.post('/club', userController.addClubMember);
 
 module.exports = router;

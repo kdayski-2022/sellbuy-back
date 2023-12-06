@@ -36,7 +36,7 @@ class EmailController {
       if (orders && orders.length) {
         const subject = getSubject(type);
         for (const order of orders) {
-          const html = getDealExpirationBody({
+          const html = getDealExpirationBody(subscription, {
             ...order,
             payout_tx: transactionHash,
           });

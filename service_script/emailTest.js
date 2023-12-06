@@ -55,8 +55,8 @@ db.connection.authenticate().then(async () => {
     ];
 
     const subject = getSubject('transaction_notifications');
-    const html = getDealExpirationBody(orderDB);
-    // const html = getDealInitiationBody(orderDB);
+    const html = getDealExpirationBody(subscription, orderDB);
+    // const html = getDealInitiationBody(subscription, orderDB);
     await sendMail(emails, subject, '', html);
   }
   console.log('ok');
