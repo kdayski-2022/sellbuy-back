@@ -38,7 +38,7 @@ function Socket() {
         const user = await db.models.User.findOne({
           where: { address: userAddress },
         });
-        chat_access = user.chat_access;
+        if (user) chat_access = user.chat_access;
       }
 
       if (chat_access) {
