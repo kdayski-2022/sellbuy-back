@@ -23,7 +23,6 @@
   "homepage": "https://github.com/fanilus/sellbuy-back#readme",
   "dependencies": {
     "async": "^3.2.0",
-    "async-mutex": "^0.4.0",
     "axios": "^0.27.2",
     "cors": "^2.8.5",
     "deep-diff": "^1.0.2",
