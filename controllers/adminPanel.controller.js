@@ -47,6 +47,7 @@ const {
   createTimeOnPlatform,
 } = require('../lib/user.js');
 const { getDaysDifference } = require('../lib/dates.js');
+const { getCurrentPrice } = require('../lib/price.js');
 
 dotenv.config();
 const md5Salt = process.env.md5Salt;
@@ -54,19 +55,6 @@ const API_URL = process.env.API_URL;
 const REF_FEE = process.env.REF_FEE;
 const DB_ENV = process.env.DB_ENV;
 const METAMASK_PRIV_KEY = process.env.METAMASK_PRIV_KEY;
-
-const getCurrentPrice = async (tokenSymbol) => {
-  try {
-    tokenSymbol = tokenSymbol === 'WBTC' ? 'BTC' : tokenSymbol;
-    const { data } = await axios.get(
-      `${API_URL}/public/get_book_summary_by_currency?currency=${tokenSymbol}&kind=option`
-    );
-    return data.result[0].estimated_delivery_price;
-  } catch (e) {
-    console.log(e);
-    return 0;
-  }
-};
 
 const spliceForPagination = async (orders, pagination) => {
   try {

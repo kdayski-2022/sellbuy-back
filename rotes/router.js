@@ -48,8 +48,7 @@ router.post('/order_state/update', orderAttemptController.updateOrderAttempt);
 router.post('/order_state/get', orderAttemptController.getOrderAttempt);
 router.get('/periods_price', periodController.getPricePeriods);
 router.get('/price', priceController.getCurrentPrice);
-router.get('/prices/sell', priceController.getSellPrices);
-router.get('/prices/buy', priceController.getBuyPrices);
+router.get('/prices/:direction', priceController.getPrices);
 router.get('/strikes', strikeController.getStrikes);
 router.get('/session', sessionController.create);
 router.get('/chat', chatController.getChat);
@@ -77,6 +76,7 @@ router.get(
   statsController.getUniqueAddresses
 );
 router.get('/web/statistics', statsController.getWebStatistics);
+// router.get('/web/current_offer/:direction', statsController.getCurrentOffer);
 router.post('/ambassador', userController.addAmbassador);
 router.post('/club', userController.addClubMember);
 

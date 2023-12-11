@@ -28,10 +28,16 @@ const CHAT = {
   LOGS: 'logs',
 };
 
+const DIRECTION = {
+  SELL: 'sell',
+  BUY: 'buy',
+};
+
 module.exports = {
   ACTIVITY_NAMES,
   ACTIVITY_VALUES,
   ACTIVITY_MODIFICATIONS,
   ORDER_STATUSES,
   CHAT,
+  DIRECTION,
 };
