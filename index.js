@@ -105,17 +105,21 @@ db.connection
               });
 
               orderAttempts.forEach(async ({ id, ...data }) => {
-                if (data && data.hash) {
-                  const state = await checkState({
-                    ...data,
-                    id,
-                  });
-                  await db.models.OrderAttempt.update(
-                    {
-                      ...state,
-                    },
-                    { where: { id } }
-                  );
+                try {
+                  if (data && data.hash) {
+                    const state = await checkState({
+                      ...data,
+                      id,
+                    });
+                    await db.models.OrderAttempt.update(
+                      {
+                        ...state,
+                      },
+                      { where: { id } }
+                    );
+                  }
+                } catch (e) {
+                  console.log(e);
                 }
               });
             } catch (e) {
@@ -146,27 +150,31 @@ db.connection
               });
 
               orderAttempts.forEach(async ({ id, ...data }) => {
-                if (data && data.instrument_name) {
-                  let order_hedged = data.order_hedged;
-                  if (data.amount < VALID_AMOUNT[data.token_symbol])
-                    order_hedged = true;
-                  let { order_id, error } = await postOrder({
-                    attempt_id: id,
-                    ...data,
-                    order_hedged,
-                  });
-                  if (data.amount < VALID_AMOUNT[data.token_symbol])
-                    order_id = 'hedging';
-                  const state = await checkState({
-                    ...data,
-                    id,
-                    order_id,
-                    error,
-                  });
-                  await db.models.OrderAttempt.update(
-                    { ...state, order_id, error },
-                    { where: { id } }
-                  );
+                try {
+                  if (data && data.instrument_name) {
+                    let order_hedged = data.order_hedged;
+                    if (data.amount < VALID_AMOUNT[data.token_symbol])
+                      order_hedged = true;
+                    let { order_id, error } = await postOrder({
+                      attempt_id: id,
+                      ...data,
+                      order_hedged,
+                    });
+                    if (data.amount < VALID_AMOUNT[data.token_symbol])
+                      order_id = 'hedging';
+                    const state = await checkState({
+                      ...data,
+                      id,
+                      order_id,
+                      error,
+                    });
+                    await db.models.OrderAttempt.update(
+                      { ...state, order_id, error },
+                      { where: { id } }
+                    );
+                  }
+                } catch (e) {
+                  console.log(e);
                 }
               });
             } catch (e) {
@@ -189,20 +197,24 @@ db.connection
               let lastChainId = 1;
               orders.forEach(
                 async ({ user_payment_tx_hash, order_id, chain_id }) => {
-                  if (user_payment_tx_hash && order_id) {
-                    if (lastChainId !== chain_id) {
-                      lastChainId = chain_id;
-                      web3 = new Web3(INFURA_PROVIDERS[chain_id]);
-                    }
-                    const { status } = await web3.eth.getTransactionReceipt(
-                      user_payment_tx_hash
-                    );
-                    if (status) {
-                      await db.models.Order.update(
-                        { payment_complete: true },
-                        { where: { order_id } }
+                  try {
+                    if (user_payment_tx_hash && order_id) {
+                      if (lastChainId !== chain_id) {
+                        lastChainId = chain_id;
+                        web3 = new Web3(INFURA_PROVIDERS[chain_id]);
+                      }
+                      const { status } = await web3.eth.getTransactionReceipt(
+                        user_payment_tx_hash
                       );
+                      if (status) {
+                        await db.models.Order.update(
+                          { payment_complete: true },
+                          { where: { order_id } }
+                        );
+                      }
                     }
+                  } catch (e) {
+                    console.log(e);
                   }
                 }
               );
@@ -262,12 +274,20 @@ db.connection
               await updateActivities(formattedData.activities);
 
               for (const log of logs) {
-                await db.models.Log.destroy({ where: { id: log.id } });
+                try {
+                  await db.models.Log.destroy({ where: { id: log.id } });
+                } catch (e) {
+                  console.log(e);
+                }
               }
               for (const session of sessions) {
-                await db.models.UserSession.destroy({
-                  where: { id: session.id },
-                });
+                try {
+                  await db.models.UserSession.destroy({
+                    where: { id: session.id },
+                  });
+                } catch (e) {
+                  console.log(e);
+                }
               }
             } catch (e) {
               console.log(e);
@@ -276,8 +296,8 @@ db.connection
 
           setInterval(async () => {
             // Попытка привязывается к адресу, количеству и дате
-            try {
-              CHAIN_LIST_ENV[DB_ENV].forEach(async (chain_id) => {
+            CHAIN_LIST_ENV[DB_ENV].forEach(async (chain_id) => {
+              try {
                 const minute = 60;
                 const hour = minute * 60;
                 const day = hour * 24;
@@ -300,171 +320,182 @@ db.connection
                 isIterable(res.erc20Transactions) &&
                   allTransactions.push(...res.erc20Transactions);
                 for (const tx of allTransactions) {
-                  // Если токена нет в транзакции, то он основной (ETH)
-                  if (!tx.tokenSymbol) tx.tokenSymbol = 'ETH';
+                  try {
+                    // Если токена нет в транзакции, то он основной (ETH)
+                    if (!tx.tokenSymbol) tx.tokenSymbol = 'ETH';
 
-                  // Проверка есть ли поступивший токен в списке валидных токенах для продажи
-                  let token = PAYIN_TOKEN_ADDRESS_LIST[chain_id].find(
-                    (item) => item.tokenSymbol === tx.tokenSymbol
-                  );
-
-                  // Если токен найден, то это транза на продажу, если нет, то сетим токен в дефолтную пару (USDC) и объявляем тразу как покупка
-                  if (token) {
-                    tx.direction = 'sell';
-                  } else {
-                    token = {
-                      tokenSymbol:
-                        chain_id === CHAIN_NETWORKS.Arbitrum ||
-                        chain_id === CHAIN_NETWORKS['Arbitrum Goerli']
-                          ? 'USDC.e'
-                          : 'USDC',
-                      tokenAddress: WITHDRAWAL_TOKEN_ADDRESS[chain_id],
-                    };
-                    tx.direction = 'buy';
-                  }
-
-                  // Приводим значение в читаемый вид
-                  if (token.tokenSymbol === 'ETH') {
-                    tx.valueOriginal = await Eth.ethFromWei(tx.value, chain_id);
-                  } else {
-                    tx.valueOriginal = await Eth.tokenFromWei(
-                      tx.value,
-                      token.tokenAddress,
-                      chain_id
+                    // Проверка есть ли поступивший токен в списке валидных токенах для продажи
+                    let token = PAYIN_TOKEN_ADDRESS_LIST[chain_id].find(
+                      (item) => item.tokenSymbol === tx.tokenSymbol
                     );
-                  }
 
-                  // Заполняем оставшиеся поля
-                  tx.tokenAddress = token.tokenAddress;
-                  tx.chain_id = chain_id;
-                  tx.createdAt = new Date(Number(tx.timeStamp) * 1000);
-
-                  // Поиск попытки по хешу
-                  let orderAttempt = await db.models.OrderAttempt.findOne({
-                    where: {
-                      hash: tx.hash,
-                    },
-                  });
-
-                  // Если попытка не найдена, то ищем попытки, которые отлетели с ошибкой майнинга
-                  if (!orderAttempt) {
-                    orderAttempt = await db.models.OrderAttempt.findAll({
-                      where: {
-                        [db.Op.and]: [
-                          {
-                            [db.Op.or]: [
-                              { address: tx.from.toLowerCase() },
-                              { address: tx.from },
-                            ],
-                          },
-                          {
-                            [db.Op.or]: [
-                              { hash: { [db.Op.ne]: tx.hash } },
-                              { hash: null },
-                            ],
-                          },
-                          { direction: tx.direction },
-                          { period: { [db.Op.gt]: new Date() } },
-                          { createdAt: { [db.Op.lt]: tx.createdAt } },
-                          {
-                            [db.Op.or]: [
-                              {
-                                error: {
-                                  [db.Op.like]:
-                                    '%Transaction started at%but was not mined within%',
-                                },
-                              },
-                              { error: null },
-                            ],
-                          },
-                        ],
-                      },
-                      order: [['id', 'ASC']],
-                    });
-
-                    // Если попытка найдена, фиксируем поступление средств в контракт
-                  } else {
-                    await db.models.ContractIncome.create({
-                      order_attempt_id: orderAttempt.id,
-                      hash: tx.hash,
-                      from: tx.from,
-                      amount: tx.valueOriginal,
-                      token_address: tx.tokenAddress,
-                      token_symbol: tx.tokenSymbol,
-                      status: true,
-                      chain_id: tx.chain_id,
-                    });
-                  }
-
-                  // Если найдена валидная попытка или попытки с ошибкой
-                  if (orderAttempt && orderAttempt.length) {
-                    // Поиск попытки по количеству депозита
-                    let validAttempt;
-                    for (const attempt of orderAttempt) {
-                      const valid =
-                        tx.direction === 'sell'
-                          ? attempt.amount === Number(tx.valueOriginal)
-                          : attempt.amount ===
-                            Number(tx.valueOriginal) / attempt.price;
-
-                      if (valid) {
-                        validAttempt = attempt;
-                      }
+                    // Если токен найден, то это транза на продажу, если нет, то сетим токен в дефолтную пару (USDC) и объявляем тразу как покупка
+                    if (token) {
+                      tx.direction = 'sell';
+                    } else {
+                      token = {
+                        tokenSymbol:
+                          chain_id === CHAIN_NETWORKS.Arbitrum ||
+                          chain_id === CHAIN_NETWORKS['Arbitrum Goerli']
+                            ? 'USDC.e'
+                            : 'USDC',
+                        tokenAddress: WITHDRAWAL_TOKEN_ADDRESS[chain_id],
+                      };
+                      tx.direction = 'buy';
                     }
-                    if (validAttempt) {
-                      const exists = await db.models.Order.findOne({
+
+                    // Приводим значение в читаемый вид
+                    if (token.tokenSymbol === 'ETH') {
+                      tx.valueOriginal = await Eth.ethFromWei(
+                        tx.value,
+                        chain_id
+                      );
+                    } else {
+                      tx.valueOriginal = await Eth.tokenFromWei(
+                        tx.value,
+                        token.tokenAddress,
+                        chain_id
+                      );
+                    }
+
+                    // Заполняем оставшиеся поля
+                    tx.tokenAddress = token.tokenAddress;
+                    tx.chain_id = chain_id;
+                    tx.createdAt = new Date(Number(tx.timeStamp) * 1000);
+
+                    // Поиск попытки по хешу
+                    let orderAttempt = await db.models.OrderAttempt.findOne({
+                      where: {
+                        hash: tx.hash,
+                      },
+                    });
+
+                    // Если попытка не найдена, то ищем попытки, которые отлетели с ошибкой майнинга
+                    if (!orderAttempt) {
+                      orderAttempt = await db.models.OrderAttempt.findAll({
                         where: {
-                          user_payment_tx_hash: tx.hash,
+                          [db.Op.and]: [
+                            {
+                              [db.Op.or]: [
+                                { address: tx.from.toLowerCase() },
+                                { address: tx.from },
+                              ],
+                            },
+                            {
+                              [db.Op.or]: [
+                                { hash: { [db.Op.ne]: tx.hash } },
+                                { hash: null },
+                              ],
+                            },
+                            { direction: tx.direction },
+                            { period: { [db.Op.gt]: new Date() } },
+                            { createdAt: { [db.Op.lt]: tx.createdAt } },
+                            {
+                              [db.Op.or]: [
+                                {
+                                  error: {
+                                    [db.Op.like]:
+                                      '%Transaction started at%but was not mined within%',
+                                  },
+                                },
+                                { error: null },
+                              ],
+                            },
+                          ],
                         },
+                        order: [['id', 'ASC']],
                       });
-                      if (!exists) {
-                        await db.models.OrderAttempt.update(
-                          {
-                            error: 'Transaction mined too slow',
+
+                      // Если попытка найдена, фиксируем поступление средств в контракт
+                    } else {
+                      await db.models.ContractIncome.create({
+                        order_attempt_id: orderAttempt.id,
+                        hash: tx.hash,
+                        from: tx.from,
+                        amount: tx.valueOriginal,
+                        token_address: tx.tokenAddress,
+                        token_symbol: tx.tokenSymbol,
+                        status: true,
+                        chain_id: tx.chain_id,
+                      });
+                    }
+
+                    // Если найдена валидная попытка или попытки с ошибкой
+                    if (orderAttempt && orderAttempt.length) {
+                      // Поиск попытки по количеству депозита
+                      let validAttempt;
+                      for (const attempt of orderAttempt) {
+                        try {
+                          const valid =
+                            tx.direction === 'sell'
+                              ? attempt.amount === Number(tx.valueOriginal)
+                              : attempt.amount ===
+                                Number(tx.valueOriginal) / attempt.price;
+
+                          if (valid) {
+                            validAttempt = attempt;
+                          }
+                        } catch (e) {
+                          console.log(e);
+                        }
+                      }
+                      if (validAttempt) {
+                        const exists = await db.models.Order.findOne({
+                          where: {
+                            user_payment_tx_hash: tx.hash,
                           },
-                          { where: { id: validAttempt.id } }
-                        );
-                        await db.models.ContractIncome.create({
-                          order_attempt_id: validAttempt.id,
-                          hash: tx.hash,
-                          from: tx.from,
-                          amount: tx.valueOriginal,
-                          token_address: tx.tokenAddress,
-                          token_symbol: tx.tokenSymbol,
-                          status: false,
-                          chain_id: tx.chain_id,
                         });
-                        telegram.send(
-                          `${validAttempt.id} Order attempt has not caught hash\n${BLOCK_EXPLORERS[chain_id]}/tx/${tx.hash}`
-                        );
-                        const timeDifference = getTimeDifference(
-                          validAttempt.createdAt
-                        );
-                        telegram.send(
-                          `Transaction was initiated ${timeDifference.formatted} ago`
-                        );
-                        const timeLimit = 10;
-                        if (timeDifference.minutes < timeLimit) {
+                        if (!exists) {
                           await db.models.OrderAttempt.update(
                             {
-                              hash: tx.hash,
-                              error: null,
+                              error: 'Transaction mined too slow',
                             },
                             { where: { id: validAttempt.id } }
                           );
-                        } else {
+                          await db.models.ContractIncome.create({
+                            order_attempt_id: validAttempt.id,
+                            hash: tx.hash,
+                            from: tx.from,
+                            amount: tx.valueOriginal,
+                            token_address: tx.tokenAddress,
+                            token_symbol: tx.tokenSymbol,
+                            status: false,
+                            chain_id: tx.chain_id,
+                          });
                           telegram.send(
-                            `Transaction mining took too much time. Limit is ${timeLimit} minutes @georgv @fanil`
+                            `${validAttempt.id} Order attempt has not caught hash\n${BLOCK_EXPLORERS[chain_id]}/tx/${tx.hash}`
                           );
+                          const timeDifference = getTimeDifference(
+                            validAttempt.createdAt
+                          );
+                          telegram.send(
+                            `Transaction was initiated ${timeDifference.formatted} ago`
+                          );
+                          const timeLimit = 10;
+                          if (timeDifference.minutes < timeLimit) {
+                            await db.models.OrderAttempt.update(
+                              {
+                                hash: tx.hash,
+                                error: null,
+                              },
+                              { where: { id: validAttempt.id } }
+                            );
+                          } else {
+                            telegram.send(
+                              `Transaction mining took too much time. Limit is ${timeLimit} minutes @georgv @fanil`
+                            );
+                          }
                         }
                       }
                     }
+                  } catch (e) {
+                    console.log(e);
                   }
                 }
-              });
-            } catch (e) {
-              console.log(e);
-            }
+              } catch (e) {
+                console.log(e);
+              }
+            });
           }, 300000);
         });
       })
