@@ -22,9 +22,16 @@ const ORDER_STATUSES = {
   CREATED: 'created',
 };
 
+const CHAT = {
+  SUPPORT: 'support',
+  CLUB: 'club',
+  LOGS: 'logs',
+};
+
 module.exports = {
   ACTIVITY_NAMES,
   ACTIVITY_VALUES,
   ACTIVITY_MODIFICATIONS,
   ORDER_STATUSES,
+  CHAT,
 };
