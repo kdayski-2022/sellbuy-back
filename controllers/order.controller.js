@@ -1,19 +1,12 @@
-const axios = require('axios');
-const dotenv = require('dotenv');
 const db = require('../database');
-const {
-  getDaysDifference,
-  getValidDays,
-  getTimestamp,
-} = require('../lib/dates');
+const { getDaysDifference } = require('../lib/dates');
 const { writeLog, updateLog } = require('../lib/logger');
 const { checkSession } = require('../lib/session');
 const { parseError } = require('../lib/lib');
-const { USER_COMMISSION } = require('../config/constants.json');
-const { getContractText, getContractHtml, getOrder } = require('../lib/order');
-const { getCurrentPrice, getPrices } = require('../lib/price');
-dotenv.config();
-const apiUrl = process.env.API_URL;
+const { getOrder } = require('../lib/order');
+const { getPrices } = require('../lib/price');
+const { getPricePeriods } = require('../lib/period');
+const { DIRECTION } = require('../enum/enum');
 
 class OrderController {
   async getOrder(req, res) {
@@ -25,12 +18,10 @@ class OrderController {
       req,
     });
     try {
-      const { period, price, amount } = req.query;
-      let { tokenSymbol } = req.query;
+      const { period, price, amount, tokenSymbol } = req.query;
       const direction = req.headers['direction-type'];
       const address =
         sessionInfo.userAddress && sessionInfo.userAddress.toLowerCase();
-      tokenSymbol = tokenSymbol === 'WBTC' ? 'BTC' : tokenSymbol;
 
       const data = await getOrder({
         period,
@@ -139,24 +130,48 @@ class OrderController {
   }
 
   async getCurrentOffer(req, res) {
-    const sessionInfo = await checkSession(req);
     const logId = await writeLog({
       action: 'getCurrentOffer',
       status: 'in progress',
-      sessionInfo,
       req,
     });
     try {
-      const { tokenSymbol, direction } = req.query;
-      const prices = await getPrices(tokenSymbol, direction);
-      console.log(prices);
-      const data = {};
+      const { direction } = req.params;
+      const { tokenSymbol } = req.query;
+
+      const { prices } = await getPrices(tokenSymbol, direction);
+      if (direction === DIRECTION.BUY) prices.reverse();
+      const amount = '1';
+      let order;
+
+      for (let price of prices) {
+        price = String(price);
+        const { periods } = await getPricePeriods({
+          direction,
+          price,
+          amount,
+          tokenSymbol,
+        });
+        for (let period of periods) {
+          period = String(period.timestamp);
+          order = await getOrder({
+            period,
+            price,
+            amount,
+            direction,
+            tokenSymbol,
+          });
+          if (order) break;
+        }
+        if (order) break;
+      }
+
+      const data = { order };
 
       updateLog(logId, { status: 'success' });
       res.json({
         success: true,
         data,
-        sessionInfo,
       });
     } catch (e) {
       updateLog(logId, { status: 'failed', error: parseError(e) });
@@ -164,7 +179,6 @@ class OrderController {
         success: false,
         data: null,
         message: e.message,
-        sessionInfo,
       });
     }
   }

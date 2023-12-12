@@ -31,6 +31,7 @@ const {
   updateActivities,
 } = require('./lib/stats');
 const { getTimeDifference } = require('./lib/dates');
+const { default: axios } = require('axios');
 
 dotenv.config();
 

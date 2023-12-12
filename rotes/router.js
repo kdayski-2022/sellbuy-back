@@ -76,7 +76,7 @@ router.get(
   statsController.getUniqueAddresses
 );
 router.get('/web/statistics', statsController.getWebStatistics);
-// router.get('/web/current_offer/:direction', statsController.getCurrentOffer);
+router.get('/web/current_offer/:direction', orderController.getCurrentOffer);
 router.post('/ambassador', userController.addAmbassador);
 router.post('/club', userController.addClubMember);
 
