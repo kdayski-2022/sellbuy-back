@@ -142,7 +142,7 @@ class OrderController {
       const { prices } = await getPrices(tokenSymbol, direction);
       if (direction === DIRECTION.BUY) prices.reverse();
       const amount = '1';
-      let order;
+      let data, order;
 
       for (let price of prices) {
         price = String(price);
@@ -161,12 +161,33 @@ class OrderController {
             direction,
             tokenSymbol,
           });
-          if (order) break;
+          if (order) {
+            const prices_difference = Math.abs(
+              Number(order.start_index_price) - Number(order.price)
+            ).toFixed(0);
+            const target_index_price =
+              direction === DIRECTION.SELL
+                ? order.price
+                : order.start_index_price;
+            const save_percent = (
+              (Number(prices_difference) / target_index_price) *
+              100
+            ).toFixed(0);
+            const market_price = Number(
+              order.start_index_price.toFixed(0)
+            ).toLocaleString();
+            const offer_price = order.price.toLocaleString();
+            data = {
+              market_price,
+              offer_price,
+              save_percent,
+              prices_difference,
+            };
+            break;
+          }
         }
         if (order) break;
       }
-
-      const data = { order };
 
       updateLog(logId, { status: 'success' });
       res.json({
