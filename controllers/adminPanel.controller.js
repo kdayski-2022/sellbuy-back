@@ -56,16 +56,16 @@ const REF_FEE = process.env.REF_FEE;
 const DB_ENV = process.env.DB_ENV;
 const METAMASK_PRIV_KEY = process.env.METAMASK_PRIV_KEY;
 
-const spliceForPagination = async (orders, pagination) => {
+const spliceForPagination = async (items, pagination) => {
   try {
-    orders.count = orders.rows.length;
+    items.count = items.rows.length;
     if (!pagination) pagination = { _start: 0, _end: 10 };
     const { _start, _end } = pagination;
-    orders.rows = orders.rows.slice(_start, _end);
-    return orders;
+    items.rows = items.rows.slice(_start, _end);
+    return items;
   } catch (e) {
     console.log(e);
-    return orders;
+    return items;
   }
 };
 
@@ -546,7 +546,6 @@ class AdminPanel {
         );
 
         try {
-          await createAmountEarned(order.from, order.recieve);
           const days = getDaysDifference(order.createdAt);
           await createTimeOnPlatform(order.from, days);
         } catch (e) {
@@ -796,16 +795,14 @@ class AdminPanel {
         error: 'Access denied',
       });
     const { _end = 10, _order = 'ASC', _sort = 'id', _start = 0 } = req.query;
-    const users = await db.models.User.findAndCountAll({
-      offset: _start,
-      limit: _end,
+    let users = await db.models.User.findAndCountAll({
       order: [[_sort, _order]],
     });
     for (const user of users.rows) {
       if (!user.nick_name) user.nick_name = 'unknown';
       if (!user.ref_fee) user.ref_fee = REF_FEE;
     }
-    users.count = users.rows.length;
+    users = await spliceForPagination(users, { _start, _end });
 
     res.setHeader('Access-Control-Expose-Headers', 'X-Total-Count');
     res.setHeader('X-Total-Count', users.count);

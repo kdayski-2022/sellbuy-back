@@ -140,7 +140,7 @@ class OrderController {
       const { tokenSymbol } = req.query;
 
       const { prices } = await getPrices(tokenSymbol, direction);
-      if (direction === DIRECTION.BUY) prices.reverse();
+      if (direction === DIRECTION.SELL) prices.reverse();
       const amount = '1';
       let data, order;
 
@@ -172,7 +172,7 @@ class OrderController {
             const save_percent = (
               (Number(prices_difference) / target_index_price) *
               100
-            ).toFixed(0);
+            ).toFixed(2);
             const market_price = Number(
               order.start_index_price.toFixed(0)
             ).toLocaleString();
