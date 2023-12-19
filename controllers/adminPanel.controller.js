@@ -786,6 +786,72 @@ class AdminPanel {
     }
   }
 
+  async getSubscription(req, res) {
+    const managerId = await session.getManagerId(req);
+    if (isEmpty(managerId))
+      return res.json({
+        success: false,
+        data: null,
+        error: 'Access denied',
+      });
+
+    const { _order = 'ASC', _sort = 'id', news, _start, _end } = req.query;
+
+    const where = news ? { news } : {};
+    let userSubscriptions = await db.models.UserSubscription.findAndCountAll({
+      where,
+      order: [[_sort, _order]],
+    });
+
+    userSubscriptions = await spliceForPagination(userSubscriptions, {
+      _start,
+      _end,
+    });
+
+    res.setHeader('Access-Control-Expose-Headers', 'X-Total-Count');
+    res.setHeader('X-Total-Count', userSubscriptions.count);
+
+    return res.status(200).send(userSubscriptions.rows);
+  }
+  async updateSubscription(req, res) {
+    const managerId = await session.getManagerId(req);
+    if (isEmpty(managerId))
+      return res.json({
+        success: false,
+        data: null,
+        error: 'Access denied',
+      });
+    const logId = await writeLog({
+      action: 'updateUserSubscription',
+      status: 'in progress',
+      req,
+    });
+    const userSubscription = req.body;
+
+    try {
+      const { id } = userSubscription;
+      await db.models.UserSubscription.update(
+        { ...userSubscription },
+        { where: { id } }
+      );
+      res.json({
+        success: true,
+        data: userSubscription,
+        message: 'User subscription was updated',
+      });
+      updateLog(logId, { status: 'success' });
+    } catch (e) {
+      console.log(e);
+      const error = parseError(e);
+      updateLog(logId, { status: 'failed', error });
+      res.json({
+        success: false,
+        data: null,
+        error,
+      });
+    }
+  }
+
   async getUsers(req, res) {
     const managerId = await session.getManagerId(req);
     if (isEmpty(managerId))

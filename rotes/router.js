@@ -25,6 +25,8 @@ router.get('/admin/statistics', adminPanel.getAdminStatistics);
 router.get('/stats/income', adminPanel.getIncome);
 router.put('/order_crud/:id', adminPanel.updateOrder);
 router.get('/order_crud', adminPanel.getOrders);
+router.put('/subscription_crud/:id', adminPanel.updateSubscription);
+router.get('/subscription_crud', adminPanel.getSubscription);
 router.get('/user_crud', adminPanel.getUsers);
 router.put('/user_crud/:id', adminPanel.updateUser);
 router.get('/referral_payout_crud', adminPanel.getReferralPayout);
