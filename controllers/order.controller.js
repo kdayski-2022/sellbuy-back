@@ -162,26 +162,36 @@ class OrderController {
             tokenSymbol,
           });
           if (order) {
+            let offer_price = order.price;
+            const receive = Number(order.recieve.toFixed(0));
+            const target_price = order.price;
+            if (direction === DIRECTION.BUY) {
+              offer_price = Number((target_price - receive).toFixed(0));
+            } else {
+              offer_price = Number((target_price + receive).toFixed(0));
+            }
+
             const prices_difference = Math.abs(
-              Number(order.start_index_price) - Number(order.price)
+              Number(order.start_index_price) - Number(offer_price)
             ).toFixed(0);
-            const target_index_price =
-              direction === DIRECTION.SELL
-                ? order.price
-                : order.start_index_price;
+
             const save_percent = (
-              (Number(prices_difference) / target_index_price) *
+              (Number(prices_difference) / target_price) *
               100
             ).toFixed(2);
             const market_price = Number(
               order.start_index_price.toFixed(0)
             ).toLocaleString();
-            const offer_price = order.price.toLocaleString();
+
+            offer_price = offer_price.toLocaleString();
+
             data = {
               market_price,
               offer_price,
               save_percent,
               prices_difference,
+              receive,
+              target_price,
             };
             break;
           }
