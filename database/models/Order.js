@@ -45,4 +45,5 @@ module.exports = {
   chain_id: DataTypes.INTEGER,
   token_symbol: DataTypes.STRING,
   apr: DataTypes.FLOAT,
+  first_tx: DataTypes.BOOLEAN,
 };

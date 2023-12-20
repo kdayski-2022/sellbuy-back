@@ -224,7 +224,7 @@ const getExpirationReferralPayout = async (orders) => {
       const address = order.from;
       let user = await db.models.User.findOne({ where: { address } });
       if (!user) user = await createUser(address);
-      if (user.ref_user_id) {
+      if (user.ref_user_id && !order.first_tx) {
         const ambassador = await db.models.User.findOne({
           where: { id: user.ref_user_id },
         });
