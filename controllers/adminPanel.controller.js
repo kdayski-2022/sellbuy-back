@@ -1,4 +1,3 @@
-const axios = require('axios');
 const crypto = require('crypto');
 const Web3 = require('web3');
 const db = require('../database');
