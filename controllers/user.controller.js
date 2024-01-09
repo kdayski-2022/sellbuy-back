@@ -504,7 +504,8 @@ class UserController {
         const user = await db.models.User.findOne({
           where: { address: item.address },
         });
-        leaderboard[index].club_member = user.commission > USER_COMMISSION;
+        leaderboard[index].club_member =
+          user && user.commission > USER_COMMISSION;
       }
 
       updateLog(logId, { status: 'success' });
