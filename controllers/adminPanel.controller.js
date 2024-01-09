@@ -44,6 +44,8 @@ const {
   createAmountEarned,
   createReferralAmountEarned,
   createTimeOnPlatform,
+  generateRef,
+  createUser,
 } = require('../lib/user.js');
 const { getDaysDifference } = require('../lib/dates.js');
 const { getCurrentPrice } = require('../lib/price.js');
@@ -166,50 +168,6 @@ const customFilters = async (orders, filters) => {
   } catch (e) {
     console.log(e);
     return orders;
-  }
-};
-
-const generateRef = async () => {
-  let ref_code = crypto.randomBytes(3).toString('hex');
-  let user = await db.models.User.findOne({
-    where: {
-      ref_code,
-    },
-  });
-  if (!user) {
-    return ref_code;
-  } else {
-    for (let i = 0; i < 5; i++) {
-      ref_code = crypto.randomBytes(3).toString('hex');
-      user = await db.models.User.findOne({
-        where: {
-          ref_code,
-        },
-      });
-      if (!user) {
-        break;
-      }
-    }
-    return ref_code;
-  }
-};
-const createUser = async (address) => {
-  try {
-    ref_code = await generateRef();
-    await db.models.User.create({
-      address,
-      ref_code,
-    });
-    await createOrUpdateUserPointsHistory(address);
-    const user = await db.models.User.findOne({
-      where: {
-        address,
-        ref_code,
-      },
-    });
-    return user;
-  } catch (e) {
-    throw e;
   }
 };
 

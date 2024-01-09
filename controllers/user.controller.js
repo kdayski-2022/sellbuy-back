@@ -16,74 +16,20 @@ const { INFURA_PROVIDERS } = require('../config/infura');
 const Eth = require('../lib/etherscan');
 const { USER_COMMISSION } = require('../config/constants.json');
 const { ACTIVITY_NAMES, ACTIVITY_VALUES } = require('../enum/enum');
-const { createOrUpdateUserPointsHistory } = require('../lib/user');
+const {
+  createOrUpdateUserPointsHistory,
+  generateRef,
+  createUser,
+  updateUser,
+} = require('../lib/user');
 
 const md5Salt = process.env.md5Salt;
 const REF_FEE = process.env.REF_FEE;
 const DB_ENV = process.env.DB_ENV;
 
-const generateRef = async () => {
-  let ref_code = crypto.randomBytes(3).toString('hex');
-  let user = await db.models.User.findOne({
-    where: {
-      ref_code,
-    },
-  });
-  if (!user) {
-    return ref_code;
-  } else {
-    for (let i = 0; i < 5; i++) {
-      ref_code = crypto.randomBytes(3).toString('hex');
-      user = await db.models.User.findOne({
-        where: {
-          ref_code,
-        },
-      });
-      if (!user) {
-        break;
-      }
-    }
-    return ref_code;
-  }
-};
-
-const createUser = async (address) => {
-  try {
-    ref_code = await generateRef();
-    await db.models.User.create({
-      address,
-      ref_code,
-    });
-    await createOrUpdateUserPointsHistory(address);
-    const user = await db.models.User.findOne({
-      where: {
-        address,
-        ref_code,
-      },
-    });
-    return user;
-  } catch (e) {
-    throw e;
-  }
-};
-
-const updateUser = async (user, data) => {
-  try {
-    await db.models.User.update(data, { where: user });
-    const result = await db.models.User.findOne({
-      where: {
-        address: user.address,
-        ref_code: user.ref_code,
-      },
-    });
-    return result;
-  } catch (e) {
-    throw e;
-  }
-};
-
 const getReferrals = async (address) => {
   address = address.toLowerCase();
+  let ref_list = [];
   let ref;
   let user = await db.models.User.findOne({
     where: {
@@ -94,6 +40,7 @@ const getReferrals = async (address) => {
     user = await createUser(address);
   }
   ref = user.ref_code;
+  ref_list = user.ref_code_list;
   const referrals = await db.models.User.findAll({
     where: {
       ref_user_id: user.id,
@@ -108,7 +55,7 @@ const getReferrals = async (address) => {
     });
     referralOrders.push(...payouts);
   }
-  return { referralOrders, ref, user };
+  return { referralOrders, ref, ref_list, user };
 };
 
 const getReferralContractBalance = async (address) => {
@@ -129,13 +76,14 @@ const getReferralContractBalance = async (address) => {
 };
 
 const getReferralPayouts = async (address) => {
-  const { referralOrders, ref, user } = await getReferrals(address);
+  const { referralOrders, ref, ref_list, user } = await getReferrals(address);
   const orders = await getOrders(referralOrders);
   const { refTable, totals } = await getRefTable(orders, user.ref_fee);
   const balance = await getReferralContractBalance(address);
 
   return {
     ref,
+    ref_list,
     referrals: refTable,
     totals,
     balance,
@@ -362,7 +310,10 @@ class UserController {
     try {
       let parent = await db.models.User.findOne({
         where: {
-          ref_code,
+          [db.Op.or]: [
+            { ref_code },
+            { ref_code_list: { [db.Op.contains]: [ref_code] } },
+          ],
         },
       });
       let referral = await db.models.User.findOne({
@@ -373,7 +324,14 @@ class UserController {
       if (!referral) {
         referral = await createUser(address);
       }
+      const referralOrders = await db.models.Order.findAll({
+        where: {
+          from: address,
+        },
+      });
+      const noOrders = referralOrders.length === 0;
       if (
+        noOrders &&
         !referral.ref_user_id &&
         parent &&
         parent.ref_user_id !== referral.id

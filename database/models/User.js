@@ -8,6 +8,11 @@ module.exports = {
     },
   },
   ref_code: DataTypes.STRING,
+  ref_code_list: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    allowNull: false,
+    defaultValue: [],
+  },
   ref_user_id: DataTypes.INTEGER,
   ref_fee: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 11.5 },
   nick_name: DataTypes.STRING,
