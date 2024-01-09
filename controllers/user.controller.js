@@ -1,4 +1,3 @@
-const crypto = require('crypto');
 const md5 = require('md5');
 const Web3 = require('web3');
 const db = require('../database');
@@ -15,13 +14,7 @@ const {
 const { INFURA_PROVIDERS } = require('../config/infura');
 const Eth = require('../lib/etherscan');
 const { USER_COMMISSION } = require('../config/constants.json');
-const { ACTIVITY_NAMES, ACTIVITY_VALUES } = require('../enum/enum');
-const {
-  createOrUpdateUserPointsHistory,
-  generateRef,
-  createUser,
-  updateUser,
-} = require('../lib/user');
+const { createUser, updateUser, generateRef } = require('../lib/user');
 
 const md5Salt = process.env.md5Salt;
 const REF_FEE = process.env.REF_FEE;
@@ -347,6 +340,134 @@ class UserController {
       res.json({
         success: false,
         error: e?.response?.data?.error?.message,
+        sessionInfo,
+      });
+    }
+  }
+
+  async editReferral(req, res) {
+    const sessionInfo = await checkSession(req);
+    const logId = await writeLog({
+      action: 'editReferral',
+      status: 'in progress',
+      sessionInfo,
+      req,
+    });
+    const { ref_code } = req.params;
+    let { address, idx } = req.body;
+    address = address.toLowerCase();
+    try {
+      let user = await db.models.User.findOne({
+        where: {
+          address,
+        },
+      });
+      const isAlreadyInUse = await db.models.User.findOne({
+        where: {
+          [db.Op.or]: [
+            { ref_code },
+            { ref_code_list: { [db.Op.contains]: [ref_code] } },
+          ],
+        },
+      });
+      if (isAlreadyInUse) throw new Error('Ref code is already in use');
+      const ref_code_list = JSON.parse(JSON.stringify(user.ref_code_list));
+      ref_code_list[idx] = ref_code;
+      await updateUser(user, { ref_code, ref_code_list });
+
+      updateLog(logId, { status: 'success' });
+      res.json({
+        success: true,
+        sessionInfo,
+        data: { ref_list: ref_code_list },
+      });
+    } catch (e) {
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.json({
+        success: false,
+        error: e?.message || e?.response?.data?.error?.message,
+        sessionInfo,
+      });
+    }
+  }
+
+  async removeRefCode(req, res) {
+    const sessionInfo = await checkSession(req);
+    const logId = await writeLog({
+      action: 'removeRefCode',
+      status: 'in progress',
+      sessionInfo,
+      req,
+    });
+    let { address, idx } = req.body;
+    address = address.toLowerCase();
+    try {
+      let user = await db.models.User.findOne({
+        where: {
+          address,
+        },
+      });
+      let ref_code_list = [];
+      if (idx > -1) {
+        ref_code_list = JSON.parse(JSON.stringify(user.ref_code_list));
+        if (ref_code_list.length <= 1)
+          throw new Error('There need to be at least 1 link');
+        ref_code_list.splice(idx, 1);
+      }
+      await updateUser(user, {
+        ref_code: ref_code_list.length ? ref_code_list[0] : '',
+        ref_code_list,
+      });
+
+      updateLog(logId, { status: 'success' });
+      res.json({
+        success: true,
+        sessionInfo,
+        data: { ref_list: ref_code_list },
+      });
+    } catch (e) {
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.json({
+        success: false,
+        error: e?.message || e?.response?.data?.error?.message,
+        sessionInfo,
+      });
+    }
+  }
+
+  async generateRefCode(req, res) {
+    const sessionInfo = await checkSession(req);
+    const logId = await writeLog({
+      action: 'generateRefCode',
+      status: 'in progress',
+      sessionInfo,
+      req,
+    });
+    let { address } = req.params;
+    address = address.toLowerCase();
+    try {
+      let user = await db.models.User.findOne({
+        where: {
+          address,
+        },
+      });
+      const ref_code = await generateRef();
+      const ref_code_list = JSON.parse(JSON.stringify(user.ref_code_list));
+      if (ref_code_list.length >= 3) throw new Error('Ref links limit reached');
+      ref_code_list.push(ref_code);
+      await updateUser(user, { ref_code, ref_code_list });
+
+      updateLog(logId, { status: 'success' });
+      res.json({
+        success: true,
+        sessionInfo,
+        data: { ref_list: ref_code_list },
+      });
+    } catch (e) {
+      updateLog(logId, { status: 'failed', error: parseError(e) });
+      res.json({
+        success: false,
+        error: e?.message || e?.response?.data?.error?.message,
         sessionInfo,
       });
     }
