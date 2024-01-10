@@ -25,6 +25,7 @@ const ORDER_STATUSES = {
 const CHAT = {
   SUPPORT: 'support',
   CLUB: 'club',
+  CLUB_ENG: 'club_eng',
   LOGS: 'logs',
 };
 
