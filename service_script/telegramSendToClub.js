@@ -2,6 +2,7 @@ const { Telegraf } = require('telegraf');
 
 const CLUB_CHAT_ID = '';
 const TELEGRAM_KEY = '';
+const MESSAGE = '';
 
 function Telegram() {
   if (!(this instanceof Telegram)) {
@@ -25,4 +26,4 @@ Telegram.prototype.send = async function send(msg) {
 };
 
 const telegram = new Telegram();
-telegram.send('TIME-LIMIT ORDER BUY 0.44 WBTC 43500 29DEC APR 69%');
+telegram.send(MESSAGE);
