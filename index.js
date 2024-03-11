@@ -222,8 +222,7 @@ db.connection
               console.log(e);
             }
           }, 10000);
-          // const test = await db.models.EmailAttemts.findAll();
-          // console.log(test);
+
           // ! auto order complete
           setInterval(async () => {
             try {
