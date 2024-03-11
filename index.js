@@ -39,7 +39,7 @@ const AUTOPAY_INTERVAL = process.env.AUTOPAY_INTERVAL;
 const DB_ENV = process.env.DB_ENV;
 
 const PORT = process.env.PORT;
-const SECURE_PORT = DB_ENV === 'production' ? 5511 : 5611;
+const SECURE_PORT = DB_ENV === 'production' ? 9511 : 9611;
 
 const app = express();
 crud(app);
@@ -104,7 +104,6 @@ db.connection
                   ],
                 },
               });
-
               orderAttempts.forEach(async ({ id, ...data }) => {
                 try {
                   if (data && data.hash) {
@@ -223,7 +222,8 @@ db.connection
               console.log(e);
             }
           }, 10000);
-
+          // const test = await db.models.EmailAttemts.findAll();
+          // console.log(test);
           // ! auto order complete
           setInterval(async () => {
             try {

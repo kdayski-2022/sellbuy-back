@@ -56,6 +56,7 @@ const API_URL = process.env.API_URL;
 const REF_FEE = process.env.REF_FEE;
 const DB_ENV = process.env.DB_ENV;
 const METAMASK_PRIV_KEY = process.env.METAMASK_PRIV_KEY;
+const EMAIL_TEST_DEV = process.env.EMAIL_TEST_DEV;
 
 const spliceForPagination = async (items, pagination) => {
   try {
@@ -549,7 +550,7 @@ class AdminPanel {
               orders: userCompleteOrders.length,
             };
             if (DB_ENV === 'development')
-              orderDB.subscription.email = 'npoqpu2010@mail.ru';
+              orderDB.subscription.email = EMAIL_TEST_DEV;
             const subject = getSubject('transaction_notifications');
             const html = getDealExpirationBody(subscription, orderDB);
             await sendMail([orderDB.subscription.email], subject, '', html);
