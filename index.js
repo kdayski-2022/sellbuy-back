@@ -39,7 +39,7 @@ const AUTOPAY_INTERVAL = process.env.AUTOPAY_INTERVAL;
 const DB_ENV = process.env.DB_ENV;
 
 const PORT = process.env.PORT;
-const SECURE_PORT = DB_ENV === 'production' ? 9511 : 9611;
+const SECURE_PORT = process.env.SECURE_PORT;
 
 const app = express();
 crud(app);
