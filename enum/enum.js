@@ -27,6 +27,7 @@ const CHAT = {
   CLUB: 'club',
   CLUB_ENG: 'club_eng',
   LOGS: 'logs',
+  AMBASSADOR: 'ambassador',
 };
 
 const DIRECTION = {
