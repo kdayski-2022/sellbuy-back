@@ -39,13 +39,12 @@ const main = async () => {
 	allOrders = allOrders.map((item) => item.from.toLowerCase())
 	allUsers = [...allUsers, ...allRP, ...allRCI, ...allOrders]
 	const uniq = [...new Set(allUsers)];
-	console.log(uniq.length)
-	// let total = 0
-	// for (const address of uniq) {
-	// 	total += await getReferralPayouts(address)
-	// 	console.log(total)
-	// }
-	// console.log(total)
+	let total = 0
+	for (const address of uniq) {
+		total += await getReferralPayouts(address)
+		console.log(total)
+	}
+	console.log(total)
 }
 
 db.connection.authenticate().then(async () => {
